@@ -96,6 +96,61 @@ static inline bool check_path(const char *data, const char *path,
 
 
 /* ------------------------------------------------------------------------- */
+/* hotkeys */
+
+struct obs_hotkey {
+	obs_hotkey_id               id;
+	char                        *name;
+	char                        *description;
+
+	obs_hotkey_func             func;
+	void                        *data;
+	int                         pressed;
+
+	obs_hotkey_registerer_t     registerer_type;
+	void                        *registerer;
+};
+
+struct obs_hotkey_pair {
+	obs_hotkey_pair_id          pair_id;
+	obs_hotkey_id               id[2];
+	obs_hotkey_active_func      func[2];
+	bool                        pressed0 : 1;
+	bool                        pressed1 : 1;
+	void                        *data[2];
+};
+
+typedef struct obs_hotkey_pair obs_hotkey_pair_t;
+
+typedef struct obs_hotkeys_platform obs_hotkeys_platform_t;
+
+void *obs_hotkey_thread(void *param);
+
+struct obs_core_hotkeys;
+bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys);
+void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys);
+bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
+		obs_key_t key);
+
+struct obs_context_data;
+void obs_hotkeys_context_release(struct obs_context_data *context);
+
+void obs_hotkeys_free(void);
+
+struct obs_hotkey_binding {
+	obs_key_combination_t       key;
+	bool                        pressed : 1;
+	bool                        modifiers_match : 1;
+
+	obs_hotkey_id               hotkey_id;
+	obs_hotkey_t                *hotkey;
+};
+
+struct obs_hotkey_name_map;
+void obs_hotkey_name_map_free(void);
+
+
+/* ------------------------------------------------------------------------- */
 /* views */
 
 struct obs_view {
@@ -213,6 +268,28 @@ struct obs_core_data {
 	volatile bool                   valid;
 };
 
+/* user hotkeys */
+struct obs_core_hotkeys {
+	pthread_mutex_t                 mutex;
+	DARRAY(obs_hotkey_t)            hotkeys;
+	obs_hotkey_id                   next_id;
+	DARRAY(obs_hotkey_pair_t)       hotkey_pairs;
+	obs_hotkey_pair_id              next_pair_id;
+
+	pthread_t                       hotkey_thread;
+	bool                            hotkey_thread_initialized;
+	os_event_t                      *stop_event;
+	bool                            thread_disable_primary;
+	DARRAY(obs_hotkey_binding_t)    bindings;
+
+	obs_hotkeys_platform_t          *platform_context;
+
+	pthread_once_t                  name_map_init_token;
+	struct obs_hotkey_name_map      *name_map;
+
+	signal_handler_t                *signals;
+};
+
 struct obs_core {
 	struct obs_module               *first_module;
 	DARRAY(struct obs_module_path)  module_paths;
@@ -236,6 +313,7 @@ struct obs_core {
 	struct obs_core_video           video;
 	struct obs_core_audio           audio;
 	struct obs_core_data            data;
+	struct obs_core_hotkeys         hotkeys;
 };
 
 extern struct obs_core *obs;
@@ -253,6 +331,10 @@ struct obs_context_data {
 	signal_handler_t                *signals;
 	proc_handler_t                  *procs;
 
+	DARRAY(obs_hotkey_id)           hotkeys;
+	DARRAY(obs_hotkey_pair_id)      hotkey_pairs;
+	obs_data_t                      *hotkey_data;
+
 	DARRAY(char*)                   rename_cache;
 	pthread_mutex_t                 rename_cache_mutex;
 
@@ -264,7 +346,8 @@ struct obs_context_data {
 extern bool obs_context_data_init(
 		struct obs_context_data *context,
 		obs_data_t              *settings,
-		const char              *name);
+		const char              *name,
+		obs_data_t              *hotkey_data);
 extern void obs_context_data_free(struct obs_context_data *context);
 
 extern void obs_context_data_insert(struct obs_context_data *context,
@@ -376,7 +459,8 @@ struct obs_source {
 extern const struct obs_source_info *find_source(struct darray *list,
 		const char *id);
 extern bool obs_source_init_context(struct obs_source *source,
-		obs_data_t *settings, const char *name);
+		obs_data_t *settings, const char *name,
+		obs_data_t *hotkey_data);
 extern bool obs_source_init(struct obs_source *source,
 		const struct obs_source_info *info);
 
