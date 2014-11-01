@@ -31,6 +31,7 @@ class OBSBasic;
 class QAbstractButton;
 class QComboBox;
 class OBSPropertiesView;
+class OBSHotkeyWidget;
 
 #include "ui_OBSBasicSettings.h"
 
@@ -58,11 +59,13 @@ private:
 	OBSBasic *main;
 
 	std::unique_ptr<Ui::OBSBasicSettings> ui;
+
 	bool generalChanged = false;
 	bool stream1Changed = false;
 	bool outputsChanged = false;
 	bool audioChanged = false;
 	bool videoChanged = false;
+	bool hotkeysChanged = false;
 	bool advancedChanged = false;
 	int  pageIndex = 0;
 	bool loading = true;
@@ -73,6 +76,8 @@ private:
 	OBSPropertiesView *streamProperties = nullptr;
 	OBSPropertiesView *streamEncoderProps = nullptr;
 	OBSPropertiesView *recordEncoderProps = nullptr;
+
+	std::vector<std::pair<bool, QPointer<OBSHotkeyWidget>>> hotkeys;
 
 	void SaveCombo(QComboBox *widget, const char *section,
 			const char *value);
@@ -91,7 +96,8 @@ private:
 	inline bool Changed() const
 	{
 		return generalChanged || outputsChanged || stream1Changed ||
-			audioChanged || videoChanged || advancedChanged;
+			audioChanged || videoChanged || advancedChanged ||
+			hotkeysChanged;
 	}
 
 	inline void EnableApplyButton(bool en)
@@ -106,6 +112,7 @@ private:
 		outputsChanged = false;
 		audioChanged   = false;
 		videoChanged   = false;
+		hotkeysChanged = false;
 		advancedChanged= false;
 		EnableApplyButton(false);
 	}
@@ -125,6 +132,7 @@ private:
 	void LoadOutputSettings();
 	void LoadAudioSettings();
 	void LoadVideoSettings();
+	void LoadHotkeySettings();
 	void LoadAdvancedSettings();
 	void LoadSettings(bool changedOnly);
 
@@ -165,6 +173,7 @@ private:
 	void SaveOutputSettings();
 	void SaveAudioSettings();
 	void SaveVideoSettings();
+	void SaveHotkeySettings();
 	void SaveAdvancedSettings();
 	void SaveSettings();
 
@@ -199,6 +208,7 @@ private slots:
 	void VideoChanged();
 	void VideoChangedResolution();
 	void VideoChangedRestart();
+	void HotkeysChanged();
 	void AdvancedChanged();
 	void AdvancedChangedRestart();
 
@@ -208,3 +218,4 @@ protected:
 public:
 	OBSBasicSettings(QWidget *parent);
 };
+
