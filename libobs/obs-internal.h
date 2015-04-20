@@ -132,6 +132,8 @@ void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys);
 bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 		obs_key_t key);
 
+const char *obs_get_hotkey_translation(obs_key_t key, const char *def);
+
 struct obs_context_data;
 void obs_hotkeys_context_release(struct obs_context_data *context);
 
@@ -288,6 +290,8 @@ struct obs_core_hotkeys {
 	struct obs_hotkey_name_map      *name_map;
 
 	signal_handler_t                *signals;
+
+	char                            *translations[OBS_KEY_LAST_VALUE];
 };
 
 struct obs_core {

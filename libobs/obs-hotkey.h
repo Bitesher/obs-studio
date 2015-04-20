@@ -72,6 +72,58 @@ EXPORT obs_hotkey_id obs_hotkey_binding_get_hotkey_id(
 EXPORT obs_hotkey_t *obs_hotkey_binding_get_hotkey(
 		obs_hotkey_binding_t *binding);
 
+struct obs_hotkeys_translations {
+	const char *insert;
+	const char *del;
+	const char *home;
+	const char *end;
+	const char *page_up;
+	const char *page_down;
+	const char *num_lock;
+	const char *scroll_lock;
+	const char *caps_lock;
+	const char *backspace;
+	const char *tab;
+	const char *print;
+	const char *pause;
+	const char *left;
+	const char *right;
+	const char *up;
+	const char *down;
+	const char *shift;
+	const char *alt;
+	const char *control;
+	const char *super_left; /* windows key left */
+	const char *super_right; /* windows key right */
+	const char *menu;
+	const char *numpad_num; /* For example, "Numpad %1" */
+	const char *numpad_divide;
+	const char *numpad_multiply;
+	const char *numpad_minus;
+	const char *numpad_plus;
+	const char *numpad_decimal;
+	const char *apple_keypad_num; /* For example, "%1 (Keypad)" */
+	const char *apple_keypad_divide;
+	const char *apple_keypad_multiply;
+	const char *apple_keypad_minus;
+	const char *apple_keypad_plus;
+	const char *apple_keypad_decimal;
+	const char *mouse_num; /* For example, "Mouse %1" */
+};
+
+/* This function is an optional way to provide translations for specific keys
+ * that may not have translations.  If the operating system can provide
+ * translations for these keys, it will use the operating system's translation
+ * over these translations.  If no translations are specified, it will use
+ * the default english translations for that specific operating system. */
+EXPORT void obs_hotkeys_set_translations_s(
+		struct obs_hotkeys_translations *translations, size_t size);
+
+#define obs_hotkeys_set_translations(translations) \
+	obs_hotkeys_set_translations_s(translations, \
+			sizeof(struct obs_hotkeys_translations))
+
+
 /* registering hotkeys (giving hotkeys a name and a function) */
 
 typedef void (*obs_hotkey_func)(obs_hotkey_id id, obs_hotkey_t *hotkey,
