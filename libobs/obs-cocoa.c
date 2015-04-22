@@ -252,8 +252,8 @@ int obs_key_to_virtual_key(obs_key_t code)
 	case OBS_KEY_9: return kVK_ANSI_9;
 	case OBS_KEY_0: return kVK_ANSI_0;
 
-	//case OBS_KEY_RETURN:            return kVK_Return;
-	//case OBS_KEY_ESCAPE:            return kVK_Escape;
+	case OBS_KEY_RETURN:            return kVK_Return;
+	case OBS_KEY_ESCAPE:            return kVK_Escape;
 	case OBS_KEY_BACKSPACE:            return kVK_Delete;
 	case OBS_KEY_TAB:               return kVK_Tab;
 	case OBS_KEY_SPACE:             return kVK_Space;
@@ -301,7 +301,7 @@ int obs_key_to_virtual_key(obs_key_t code)
 	case OBS_KEY_NUMASTERISK: return kVK_ANSI_KeypadMultiply;
 	case OBS_KEY_NUMMINUS:    return kVK_ANSI_KeypadMinus;
 	case OBS_KEY_NUMPLUS:     return kVK_ANSI_KeypadPlus;
-	//case OBS_KEY_ENTER:    return kVK_ANSI_KeypadEnter;
+	case OBS_KEY_ENTER:    return kVK_ANSI_KeypadEnter;
 
 	case OBS_KEY_NUM1:        return kVK_ANSI_Keypad1;
 	case OBS_KEY_NUM2:        return kVK_ANSI_Keypad2;
@@ -801,8 +801,8 @@ obs_key_t obs_key_from_virtual_key(int code)
 	case kVK_ANSI_9: return OBS_KEY_9;
 	case kVK_ANSI_0: return OBS_KEY_0;
 
-	//case kVK_Return:            return OBS_KEY_RETURN;
-	//case kVK_Escape:            return OBS_KEY_ESCAPE;
+	case kVK_Return:            return OBS_KEY_RETURN;
+	case kVK_Escape:            return OBS_KEY_ESCAPE;
 	case kVK_Delete:            return OBS_KEY_BACKSPACE;
 	case kVK_Tab:               return OBS_KEY_TAB;
 	case kVK_Space:             return OBS_KEY_SPACE;
@@ -850,7 +850,7 @@ obs_key_t obs_key_from_virtual_key(int code)
 	case kVK_ANSI_KeypadMultiply: return OBS_KEY_NUMASTERISK;
 	case kVK_ANSI_KeypadMinus:    return OBS_KEY_NUMMINUS;
 	case kVK_ANSI_KeypadPlus:     return OBS_KEY_NUMPLUS;
-	//case kVK_ANSI_KeypadEnter:    return OBS_KEY_ENTER;
+	case kVK_ANSI_KeypadEnter:    return OBS_KEY_ENTER;
 
 	case kVK_ANSI_Keypad1:        return OBS_KEY_NUM1;
 	case kVK_ANSI_Keypad2:        return OBS_KEY_NUM2;
