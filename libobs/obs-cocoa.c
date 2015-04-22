@@ -876,7 +876,7 @@ obs_key_t obs_key_from_virtual_key(int code)
 	case kVK_ANSI_Keypad0:        return OBS_KEY_NUM0;
 
 	case kVK_ANSI_KeypadDecimal:  return OBS_KEY_NUMPERIOD;
-	case kVK_ANSI_KeypadEquals:   return OBS_KEY_NONE; //TODO: add code?
+	case kVK_ANSI_KeypadEquals:   return OBS_KEY_NUMEQUAL;
 
 	case kVK_F13:                 return OBS_KEY_F13;
 	case kVK_F14:                 return OBS_KEY_F14;
