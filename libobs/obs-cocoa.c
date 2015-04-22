@@ -492,8 +492,24 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 		return;
 	}
 
-	for (UniCharCount i = 0; i < len; i++)
-		dstr_catf(str, "%C", buffer[i]);
+	CFStringRef string = CFStringCreateWithCharactersNoCopy(NULL,
+			buffer, len, kCFAllocatorNull);
+	if (!string) {
+		dstr_copy(str, "");
+		blog(LOG_ERROR, "hotkey-cocoa: Could not create CFStringRef "
+				"while translating %d (0x%x) to string",
+				key, code);
+		return;
+	}
+
+	if (!dstr_from_cfstring(str, string)) {
+		dstr_copy(str, "");
+		blog(LOG_ERROR, "hotkey-cocoa: Could not translate CFStringRef "
+				"to CString while translating %d (0x%x)",
+				key, code);
+	}
+
+	CFRelease(string);
 }
 
 void obs_key_combination_to_str(obs_key_combination_t key, struct dstr *str)
