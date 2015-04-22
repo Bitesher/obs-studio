@@ -431,7 +431,6 @@ static inline bool code_to_str(int code, struct dstr *str)
 	MAP_GLYPH(kVK_RightControl,     kControlUnicode);
 	MAP_GLYPH(kVK_RightShift,       kShiftUnicode);
 	MAP_GLYPH(kVK_RightOption,      kOptionUnicode);
-	MAP_GLYPH(INVALID_KEY,          0);
 	}
 #undef IGNORE
 #undef MAP_STR
@@ -449,10 +448,17 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 	if (code_to_str(code, str))
 		return;
 
-	UInt32       dead_key_state = 0;
-	UniCharCount max_length = 16;
-	UniChar      buffer[max_length];
-	UniCharCount len = 0;
+	if (code == INVALID_KEY) {
+		blog(LOG_ERROR, "hotkey-cocoa: Got invalid key while "
+				"translating key '%d' (%s)",
+				key, obs_key_to_name(key));
+		goto err;
+	}
+
+	const UniCharCount max_length = 16;
+	UInt32             dead_key_state = 0;
+	UniChar            buffer[max_length];
+	UniCharCount       len = 0;
 
 	OSStatus err = UCKeyTranslate(obs->hotkeys.platform_context->layout,
 			code,
@@ -479,37 +485,43 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 	}
 
 	if (err != noErr) {
-		dstr_copy(str, "");
 		blog(LOG_ERROR, "hotkey-cocoa: Error while translating key '%d'"
-				" (0x%x) to string: %d", key, code, err);
-		return;
+				" (0x%x, %s) to string: %d", key, code,
+				obs_key_to_name(key), err);
+		goto err;
 	}
 
-	if (len <= 0) {
-		dstr_copy(str, "");
-		blog(LOG_WARNING, "hotkey-cocoa: Got 0 length string while "
-				"translating %d (0x%x) to string", key, code);
-		return;
+	if (len == 0) {
+		blog(LOG_ERROR, "hotkey-cocoa: Got 0 length string while "
+				"translating '%d' (0x%x, %s) to string",
+				key, code, obs_key_to_name(key));
+		goto err;
 	}
 
 	CFStringRef string = CFStringCreateWithCharactersNoCopy(NULL,
 			buffer, len, kCFAllocatorNull);
 	if (!string) {
-		dstr_copy(str, "");
 		blog(LOG_ERROR, "hotkey-cocoa: Could not create CFStringRef "
-				"while translating %d (0x%x) to string",
-				key, code);
-		return;
+				"while translating '%d' (0x%x, %s) to string",
+				key, code, obs_key_to_name(key));
+		goto err;
 	}
 
 	if (!dstr_from_cfstring(str, string)) {
-		dstr_copy(str, "");
 		blog(LOG_ERROR, "hotkey-cocoa: Could not translate CFStringRef "
-				"to CString while translating %d (0x%x)",
-				key, code);
+				"to CString while translating '%d' (0x%x, %s)",
+				key, code, obs_key_to_name(key));
+
+		goto release;
 	}
 
 	CFRelease(string);
+	return;
+
+release:
+	CFRelease(string);
+err:
+	dstr_catf(str, " %s", obs_key_to_name(key));
 }
 
 void obs_key_combination_to_str(obs_key_combination_t key, struct dstr *str)
