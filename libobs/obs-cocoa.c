@@ -187,7 +187,20 @@ void log_system_info(void)
 }
 
 
+static bool dstr_from_cfstring(struct dstr *str, CFStringRef ref)
+{
+	CFIndex length   = CFStringGetLength(ref);
+	CFIndex max_size = CFStringGetMaximumSizeForEncoding(length,
+			kCFStringEncodingUTF8);
+	dstr_reserve(str, max_size);
 
+	if (!CFStringGetCString(ref, str->array, max_size,
+				kCFStringEncodingUTF8))
+		return false;
+
+	str->len = strlen(str->array);
+	return true;
+}
 
 struct obs_hotkeys_platform {
 	CFDataRef               layout_data;
