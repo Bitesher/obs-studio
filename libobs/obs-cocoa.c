@@ -1000,6 +1000,7 @@ static inline bool init_hotkeys_platform(obs_hotkeys_platform_t **plat_)
 
 	init_keyboard(plat);
 
+	CFRelease(tis);
 	return true;
 
 fail:
