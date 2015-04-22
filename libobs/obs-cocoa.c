@@ -964,6 +964,32 @@ static inline void free_hotkeys_platform(obs_hotkeys_platform_t *plat)
 	bfree(plat);
 }
 
+static bool log_layout_name(TISInputSourceRef tis)
+{
+	struct dstr layout_name = {0};
+	CFStringRef sid = (CFStringRef)TISGetInputSourceProperty(tis,
+					kTISPropertyInputSourceID);
+	if (!sid) {
+		blog(LOG_ERROR, "hotkeys-cocoa: Failed getting InputSourceID");
+		return false;
+	}
+
+	if (!dstr_from_cfstring(&layout_name, sid)) {
+		blog(LOG_ERROR, "hotkeys-cocoa: Could not convert InputSourceID"
+				" to CString");
+		goto fail;
+	}
+
+	blog(LOG_INFO, "hotkeys-cocoa: Using layout '%s'", layout_name.array);
+
+	dstr_free(&layout_name);
+	return true;
+
+fail:
+	dstr_free(&layout_name);
+	return false;
+}
+
 static inline bool init_hotkeys_platform(obs_hotkeys_platform_t **plat_)
 {
 	if (!plat_)
@@ -984,6 +1010,8 @@ static inline bool init_hotkeys_platform(obs_hotkeys_platform_t **plat_)
 		blog(LOG_ERROR, "hotkeys-cocoa: Failed getting LayoutData");
 		goto fail;
 	}
+
+	log_layout_name(tis);
 
 	CFRetain(plat->layout_data);
 	plat->layout = (UCKeyboardLayout*)CFDataGetBytePtr(plat->layout_data);
