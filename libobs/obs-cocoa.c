@@ -524,8 +524,27 @@ err:
 	dstr_catf(str, " %s", obs_key_to_name(key));
 }
 
+static const wchar_t ctrl_str[]  = {kControlUnicode, 0};
+static const wchar_t opt_str[]   = {kOptionUnicode, 0};
+static const wchar_t shift_str[] = {kShiftUnicode, 0};
+static const wchar_t cmd_str[]   = {kCommandUnicode, 0};
+static const wchar_t null_str[]  = {0,};
 void obs_key_combination_to_str(obs_key_combination_t key, struct dstr *str)
 {
+	struct dstr key_str = {0};
+	if (key.key != OBS_KEY_NONE && key.key != OBS_KEY_UNKNOWN)
+		obs_key_to_str(key.key, &key_str);
+
+#define CHECK_MODIFIER(mod, str) ((key.modifiers & mod) ? str : null_str)
+	dstr_printf(str, "%S%S%S%S%s",
+			CHECK_MODIFIER(INTERACT_CONTROL_KEY, ctrl_str),
+			CHECK_MODIFIER(INTERACT_ALT_KEY, opt_str),
+			CHECK_MODIFIER(INTERACT_SHIFT_KEY, shift_str),
+			CHECK_MODIFIER(INTERACT_COMMAND_KEY, cmd_str),
+			key_str.len ? key_str.array : "");
+#undef CHECK_MODIFIER
+
+	dstr_free(&key_str);
 }
 
 static inline CFDictionaryRef copy_device_mask(UInt32 page, UInt32 usage)
