@@ -915,7 +915,11 @@ obs_key_t obs_key_from_virtual_key(int code)
 	case kVK_RightOption:  return OBS_KEY_ALT;
 	case 0x36:             return OBS_KEY_META;
 
-	//TODO add remaining keys
+	case kVK_Function:
+	case kVK_Mute:
+	case kVK_VolumeDown:
+	case kVK_VolumeUp:
+			       break;
 	}
 	return OBS_KEY_NONE;
 }
