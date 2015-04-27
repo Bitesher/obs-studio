@@ -344,11 +344,35 @@ int obs_key_to_virtual_key(obs_key_t code)
 	return INVALID_KEY;
 }
 
-static bool mouse_button_to_str(obs_key_t key, struct dstr *str)
+static bool localized_key_to_str(obs_key_t key, struct dstr *str)
 {
+#define MAP_KEY(k, s) case k: \
+		dstr_copy(str, obs_get_hotkey_translation(k, s)); \
+		return true
+
 #define MAP_BUTTON(i) case OBS_KEY_MOUSE ## i: \
-		dstr_copy(str, "Mouse " #i); return true
+		dstr_copy(str, obs_get_hotkey_translation(key, "Mouse " #i)); \
+		return true
+
 	switch (key) {
+	MAP_KEY(OBS_KEY_SPACE,       "Space");
+	MAP_KEY(OBS_KEY_NUMEQUAL,    "= (Keypad)");
+	MAP_KEY(OBS_KEY_NUMASTERISK, "* (Keypad)");
+	MAP_KEY(OBS_KEY_NUMPLUS,     "+ (Keypad)");
+	MAP_KEY(OBS_KEY_NUMMINUS,    "- (Keypad)");
+	MAP_KEY(OBS_KEY_NUMPERIOD,   ". (Keypad)");
+	MAP_KEY(OBS_KEY_NUMSLASH,    "/ (Keypad)");
+	MAP_KEY(OBS_KEY_NUM0,        "0 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM1,        "1 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM2,        "2 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM3,        "3 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM4,        "4 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM5,        "5 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM6,        "6 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM7,        "7 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM8,        "8 (Keypad)");
+	MAP_KEY(OBS_KEY_NUM9,        "9 (Keypad)");
+
 	MAP_BUTTON(1);
 	MAP_BUTTON(2);
 	MAP_BUTTON(3);
@@ -381,6 +405,7 @@ static bool mouse_button_to_str(obs_key_t key, struct dstr *str)
 	default: break;
 	}
 #undef MAP_BUTTON
+#undef MAP_KEY
 
 	return false;
 }
@@ -395,7 +420,6 @@ static inline bool code_to_str(int code, struct dstr *str)
 	MAP_GLYPH(kVK_Escape,           0x238B);
 	MAP_GLYPH(kVK_Delete,           0x232B);
 	MAP_GLYPH(kVK_Tab,              0x21e5);
-	MAP_STR  (kVK_Space,            "Space"); //TODO: localize
 	MAP_GLYPH(kVK_CapsLock,         0x21EA);
 	MAP_GLYPH(kVK_ANSI_KeypadClear, 0x2327);
 	MAP_GLYPH(kVK_ANSI_KeypadEnter, 0x2305);
@@ -441,7 +465,7 @@ static inline bool code_to_str(int code, struct dstr *str)
 
 void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
-	if (mouse_button_to_str(key, str))
+	if (localized_key_to_str(key, str))
 		return;
 
 	int code = obs_key_to_virtual_key(key);
