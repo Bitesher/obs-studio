@@ -934,6 +934,8 @@ OBSBasic::~OBSBasic()
 	os_cpu_usage_info_destroy(cpuUsageInfo);
 
 	obs_hotkey_set_callback_routing_func(nullptr, nullptr);
+	obs_hotkey_pair_unregister(streamingHotkeys);
+	obs_hotkey_pair_unregister(recordingHotkeys);
 
 	outputHandler.reset();
 
