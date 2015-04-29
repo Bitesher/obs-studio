@@ -979,14 +979,34 @@ static inline bool is_pressed(obs_key_t key)
 			key);
 }
 
+static inline void press_released_binding(obs_hotkey_binding_t *binding)
+{
+	binding->pressed = true;
+
+	obs_hotkey_t *hotkey = binding->hotkey;
+	if (hotkey->pressed++)
+		return;
+
+	if (!obs->hotkeys.reroute_hotkeys)
+		hotkey->func(hotkey->id, hotkey, true, hotkey->data);
+	else if (obs->hotkeys.router_func)
+		obs->hotkeys.router_func(obs->hotkeys.router_func_data,
+				hotkey->id, true);
+}
+
 static inline void release_pressed_binding(obs_hotkey_binding_t *binding)
 {
-	obs_hotkey_t *hotkey = binding->hotkey;
-
 	binding->pressed = false;
-	hotkey->pressed -= 1;
-	if (!hotkey->pressed)
+
+	obs_hotkey_t *hotkey = binding->hotkey;
+	if (--hotkey->pressed)
+		return;
+
+	if (!obs->hotkeys.reroute_hotkeys)
 		hotkey->func(hotkey->id, hotkey, false, hotkey->data);
+	else if (obs->hotkeys.router_func)
+		obs->hotkeys.router_func(obs->hotkeys.router_func_data,
+				hotkey->id, false);
 }
 
 static inline void handle_binding(obs_hotkey_binding_t *binding,
@@ -1016,14 +1036,7 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 	if (binding->pressed || no_press)
 		return;
 
-	obs_hotkey_t *hotkey = binding->hotkey;
-
-	binding->pressed = true;
-	if (!hotkey->pressed)
-		hotkey->func(hotkey->id, hotkey, true, hotkey->data);
-	hotkey->pressed += 1;
-
-	return;
+	return press_released_binding(binding);
 
 reset:
 	binding->modifiers_match = modifiers_match_;
@@ -1137,6 +1150,45 @@ void *obs_hotkey_thread(void *arg)
 		unlock();
 	}
 	return NULL;
+}
+
+void obs_hotkey_trigger_routed_callback(obs_hotkey_id id, bool pressed)
+{
+	if (!lock())
+		return;
+
+	if (!obs->hotkeys.reroute_hotkeys)
+		goto unlock;
+
+	size_t idx;
+	if (!find_id(id, &idx))
+		goto unlock;
+
+	obs_hotkey_t *hotkey = &obs->hotkeys.hotkeys.array[idx];
+	hotkey->func(id, hotkey, pressed, hotkey->data);
+
+unlock:
+	unlock();
+}
+
+void obs_hotkey_set_callback_routing_func(obs_hotkey_callback_router_func func,
+		void *data)
+{
+	if (!lock())
+		return;
+
+	obs->hotkeys.router_func = func;
+	obs->hotkeys.router_func_data = data;
+	unlock();
+}
+
+void obs_hotkey_enable_callback_rerouting(bool enable)
+{
+	if (!lock())
+		return;
+
+	obs->hotkeys.reroute_hotkeys = enable;
+	unlock();
 }
 
 static void obs_set_key_translation(obs_key_t key, const char *translation)

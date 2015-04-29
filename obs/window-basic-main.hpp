@@ -119,8 +119,8 @@ private:
 	void          Save(const char *file);
 	void          Load(const char *file);
 
-	void          InitHotkeyTranslations();
 	void          InitHotkeys();
+	void          CreateHotkeys();
 
 	bool          InitService();
 
@@ -199,6 +199,8 @@ private slots:
 
 	void ReorderSources(OBSScene scene);
 
+	void ProcessHotkey(obs_hotkey_id id, bool pressed);
+
 private:
 	/* OBS Callbacks */
 	static void SceneReordered(void *data, calldata_t *params);
@@ -220,6 +222,8 @@ private:
 	QMenu *CreateAddSourcePopupMenu();
 	void AddSourcePopupMenu(const QPoint &pos);
 	void copyActionsDynamicProperties();
+
+	static void HotkeyTriggered(void *data, obs_hotkey_id id, bool pressed);
 
 public:
 	OBSScene      GetCurrentScene();

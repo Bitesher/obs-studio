@@ -283,7 +283,11 @@ struct obs_core_hotkeys {
 	os_event_t                      *stop_event;
 	bool                            thread_disable_press : 1;
 	bool                            strict_modifiers : 1;
+	bool                            reroute_hotkeys : 1;
 	DARRAY(obs_hotkey_binding_t)    bindings;
+
+	obs_hotkey_callback_router_func router_func;
+	void                            *router_func_data;
 
 	obs_hotkeys_platform_t          *platform_context;
 

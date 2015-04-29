@@ -218,6 +218,20 @@ EXPORT void obs_hotkey_enable_background_press(bool enable);
 
 EXPORT void obs_hotkey_enable_strict_modifiers(bool enable);
 
+/* hotkey callback routing (trigger callbacks through e.g. a UI thread) */
+
+typedef void (*obs_hotkey_callback_router_func)(void *data, obs_hotkey_id id,
+		bool pressed);
+
+EXPORT void obs_hotkey_set_callback_routing_func(obs_hotkey_callback_router_func
+		func, void *data);
+
+EXPORT void obs_hotkey_trigger_routed_callback(obs_hotkey_id id, bool pressed);
+
+/* hotkey callbacks won't be processed if callback rerouting is enabled and no
+ * router func is set */
+EXPORT void obs_hotkey_enable_callback_rerouting(bool enable);
+
 /* misc */
 
 

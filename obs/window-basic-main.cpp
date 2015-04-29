@@ -118,6 +118,7 @@ OBSBasic::OBSBasic(QWidget *parent)
 	qRegisterMetaType<OBSScene>    ("OBSScene");
 	qRegisterMetaType<OBSSceneItem>("OBSSceneItem");
 	qRegisterMetaType<OBSSource>   ("OBSSource");
+	qRegisterMetaType<obs_hotkey_id>("obs_hotkey_id");
 
 	ui->scenes->setAttribute(Qt::WA_MacShowFocusRect, false);
 	ui->sources->setAttribute(Qt::WA_MacShowFocusRect, false);
@@ -658,13 +659,13 @@ void OBSBasic::OBSInit()
 	}
 
 	InitOBSCallbacks();
-	InitHotkeyTranslations();
+	InitHotkeys();
 
 	AddExtraModulePaths();
 	obs_load_all_modules();
 
 	ResetOutputs();
-	InitHotkeys();
+	CreateHotkeys();
 
 	if (!InitService())
 		throw "Failed to initialize service";
@@ -688,7 +689,7 @@ void OBSBasic::OBSInit()
 				Qt::QueuedConnection);
 }
 
-void OBSBasic::InitHotkeyTranslations()
+void OBSBasic::InitHotkeys()
 {
 	struct obs_hotkeys_translations t = {};
 	t.insert                       = Str("Hotkeys.Insert");
@@ -731,6 +732,9 @@ void OBSBasic::InitHotkeyTranslations()
 	t.apple_keypad_equal           = Str("Hotkeys.AppleKeypadEqual");
 	t.mouse_num                    = Str("Hotkeys.MouseButton");
 	obs_hotkeys_set_translations(&t);
+
+	obs_hotkey_enable_callback_rerouting(true);
+	obs_hotkey_set_callback_routing_func(OBSBasic::HotkeyTriggered, this);
 }
 
 #if 0
@@ -814,7 +818,7 @@ static inline void InitStartStopPair(OBSBasic &basic, ConfigFile &config,
 }
 #endif
 
-void OBSBasic::InitHotkeys()
+void OBSBasic::CreateHotkeys()
 {
 #if 0
 	InitStartStopPair(*this, basicConfig, streamingHotkeys,
@@ -865,12 +869,12 @@ void OBSBasic::InitHotkeys()
 		obs_data_array_release(array1);
 	};
 
-#define MAKE_CALLBACK(pred, metaMethod) \
+#define MAKE_CALLBACK(pred, method) \
 	[](obs_hotkey_pair_id, obs_hotkey_t*, bool pressed, void *data) \
 	{ \
 		OBSBasic &basic = *static_cast<OBSBasic*>(data); \
 		if (pred && pressed) { \
-			QMetaObject::invokeMethod(&basic, metaMethod); \
+			method(); \
 			return true; \
 		} \
 		return false; \
@@ -882,9 +886,9 @@ void OBSBasic::InitHotkeys()
 			"StopStreaming",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")),
 			MAKE_CALLBACK(!basic.outputHandler->StreamingActive(),
-				"StartStreaming"),
+				basic.StartStreaming),
 			MAKE_CALLBACK(basic.outputHandler->StreamingActive(),
-				"StopStreaming"),
+				basic.StopStreaming),
 			this, this);
 	LoadHotkeyPair(streamingHotkeys, "StartStreaming", "StopStreaming");
 
@@ -894,14 +898,26 @@ void OBSBasic::InitHotkeys()
 			"StopRecording",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")),
 			MAKE_CALLBACK(!basic.outputHandler->RecordingActive(),
-				"StartRecording"),
+				basic.StartRecording),
 			MAKE_CALLBACK(basic.outputHandler->RecordingActive(),
-				"StopRecording"),
+				basic.StopRecording),
 			this, this);
 	LoadHotkeyPair(recordingHotkeys, "StartRecording", "StopRecording");
 
 #undef MAKE_CALLBACK
 #endif
+}
+
+void OBSBasic::ProcessHotkey(obs_hotkey_id id, bool pressed)
+{
+	obs_hotkey_trigger_routed_callback(id, pressed);
+}
+
+void OBSBasic::HotkeyTriggered(void *data, obs_hotkey_id id, bool pressed)
+{
+	OBSBasic &basic = *static_cast<OBSBasic*>(data);
+	QMetaObject::invokeMethod(&basic, "ProcessHotkey",
+			Q_ARG(obs_hotkey_id, id), Q_ARG(bool, pressed));
 }
 
 OBSBasic::~OBSBasic()
@@ -916,6 +932,8 @@ OBSBasic::~OBSBasic()
 	 * libobs. */
 	delete cpuUsageTimer;
 	os_cpu_usage_info_destroy(cpuUsageInfo);
+
+	obs_hotkey_set_callback_routing_func(nullptr, nullptr);
 
 	outputHandler.reset();
 
