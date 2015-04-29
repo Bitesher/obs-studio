@@ -203,12 +203,16 @@ struct obs_hotkeys_platform {
 static int get_virtual_key(obs_key_t key)
 {
 	switch (key) {
+	case OBS_KEY_RETURN: return VK_RETURN;
+	case OBS_KEY_ESCAPE: return VK_ESCAPE;
 	case OBS_KEY_TAB: return VK_TAB;
+	case OBS_KEY_BACKTAB: return VK_OEM_BACKTAB;
 	case OBS_KEY_BACKSPACE: return VK_BACK;
 	case OBS_KEY_INSERT: return VK_INSERT;
 	case OBS_KEY_DELETE: return VK_DELETE;
 	case OBS_KEY_PAUSE: return VK_PAUSE;
-	case OBS_KEY_PRINT: return VK_PRINT;
+	case OBS_KEY_PRINT: return VK_SNAPSHOT;
+	case OBS_KEY_CLEAR: return VK_CLEAR;
 	case OBS_KEY_HOME: return VK_HOME;
 	case OBS_KEY_END: return VK_END;
 	case OBS_KEY_LEFT: return VK_LEFT;
@@ -315,6 +319,15 @@ static int get_virtual_key(obs_key_t key)
 	case OBS_KEY_BRACKETRIGHT: return VK_OEM_6;
 	case OBS_KEY_ASCIITILDE: return VK_OEM_3;
 
+	case OBS_KEY_KANJI: return VK_KANJI;
+	case OBS_KEY_TOUROKU: return VK_OEM_FJ_TOUROKU;
+	case OBS_KEY_MASSYO: return VK_OEM_FJ_MASSHOU;
+
+	case OBS_KEY_SUPER_L: return VK_LWIN;
+	case OBS_KEY_SUPER_R: return VK_RWIN;
+
+	case OBS_KEY_HANGUL: return VK_HANGUL;
+
 	case OBS_KEY_MOUSE1: return VK_LBUTTON;
 	case OBS_KEY_MOUSE2: return VK_RBUTTON;
 	case OBS_KEY_MOUSE3: return VK_MBUTTON;
@@ -395,8 +408,11 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 		scan_code |= 0x01000000;
 	}
 
-	if (scan_code != 0 && GetKeyNameTextW(scan_code, name, 128) != 0)
+	if (scan_code != 0 && GetKeyNameTextW(scan_code, name, 128) != 0) {
 		dstr_from_wcs(str, name);
+	} else if (key != OBS_KEY_NONE) {
+		dstr_printf(str, "#%ld", (long)key);
+	}
 }
 
 obs_key_t obs_key_from_virtual_key(int code)
