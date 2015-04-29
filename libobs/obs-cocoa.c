@@ -448,6 +448,13 @@ static inline bool code_to_str(int code, struct dstr *str)
 	MAP_STR  (kVK_F11,              "F11");
 	MAP_STR  (kVK_F12,              "F12");
 	MAP_STR  (kVK_F13,              "F13");
+	MAP_STR  (kVK_F14,              "F14");
+	MAP_STR  (kVK_F15,              "F15");
+	MAP_STR  (kVK_F16,              "F16");
+	MAP_STR  (kVK_F17,              "F17");
+	MAP_STR  (kVK_F18,              "F18");
+	MAP_STR  (kVK_F19,              "F19");
+	MAP_STR  (kVK_F20,              "F20");
 	MAP_GLYPH(kVK_Control,          kControlUnicode);
 	MAP_GLYPH(kVK_Shift,            kShiftUnicode);
 	MAP_GLYPH(kVK_Option,           kOptionUnicode);
