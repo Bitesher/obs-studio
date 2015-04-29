@@ -548,19 +548,60 @@ err:
 	dstr_catf(str, " %s", obs_key_to_name(key));
 }
 
-static const wchar_t ctrl_str[]  = {kControlUnicode, 0};
-static const wchar_t opt_str[]   = {kOptionUnicode, 0};
-static const wchar_t shift_str[] = {kShiftUnicode, 0};
-static const wchar_t cmd_str[]   = {kCommandUnicode, 0};
-static const wchar_t null_str[]  = {0,};
+#define OBS_COCOA_MODIFIER_SIZE 7
+static void unichar_to_utf8(const UniChar *c, char *buff)
+{
+	CFStringRef string = CFStringCreateWithCharactersNoCopy(NULL, c, 2,
+			kCFAllocatorNull);
+	if (!string) {
+		blog(LOG_ERROR, "hotkey-cocoa: Could not create CFStringRef "
+				"while populating modifier strings");
+		return;
+	}
+
+	if (!CFStringGetCString(string, buff, OBS_COCOA_MODIFIER_SIZE,
+				kCFStringEncodingUTF8))
+		blog(LOG_ERROR, "hotkey-cocoa: Error while populating "
+				" modifier string with glyph %d (0x%x)",
+				c[0], c[0]);
+
+	CFRelease(string);
+}
+
+static char ctrl_str[OBS_COCOA_MODIFIER_SIZE];
+static char opt_str[OBS_COCOA_MODIFIER_SIZE];
+static char shift_str[OBS_COCOA_MODIFIER_SIZE];
+static char cmd_str[OBS_COCOA_MODIFIER_SIZE];
+static void init_utf_8_strings(void)
+{
+	const UniChar ctrl_uni[]  = {kControlUnicode, 0};
+	const UniChar opt_uni[]   = {kOptionUnicode, 0};
+	const UniChar shift_uni[] = {kShiftUnicode, 0};
+	const UniChar cmd_uni[]   = {kCommandUnicode, 0};
+
+	unichar_to_utf8(ctrl_uni, ctrl_str);
+	unichar_to_utf8(opt_uni, opt_str);
+	unichar_to_utf8(shift_uni, shift_str);
+	unichar_to_utf8(cmd_uni, cmd_str);
+}
+
+static pthread_once_t strings_token = PTHREAD_ONCE_INIT;
 void obs_key_combination_to_str(obs_key_combination_t key, struct dstr *str)
 {
 	struct dstr key_str = {0};
 	if (key.key != OBS_KEY_NONE && key.key != OBS_KEY_UNKNOWN)
 		obs_key_to_str(key.key, &key_str);
 
-#define CHECK_MODIFIER(mod, str) ((key.modifiers & mod) ? str : null_str)
-	dstr_printf(str, "%S%S%S%S%s",
+	int res = pthread_once(&strings_token, init_utf_8_strings);
+	if (res) {
+		blog(LOG_ERROR, "hotkeys-cocoa: Error while translating "
+				"modifiers %d (0x%x)", res, res);
+		dstr_move(str, &key_str);
+		return;
+	}
+
+#define CHECK_MODIFIER(mod, str) ((key.modifiers & mod) ? str : "")
+	dstr_printf(str, "%s%s%s%s%s",
 			CHECK_MODIFIER(INTERACT_CONTROL_KEY, ctrl_str),
 			CHECK_MODIFIER(INTERACT_ALT_KEY, opt_str),
 			CHECK_MODIFIER(INTERACT_SHIFT_KEY, shift_str),
