@@ -1063,13 +1063,12 @@ void obs_hotkey_inject_event(obs_key_combination_t hotkey, bool pressed)
 	unlock();
 }
 
-void obs_hotkey_enable_background_primary(bool enable)
+void obs_hotkey_enable_background_press(bool enable)
 {
 	if (!lock())
 		return;
 
-	blog(LOG_INFO, "disabled: %s", !enable ? "true" : "false");
-	obs->hotkeys.thread_disable_primary = !enable;
+	obs->hotkeys.thread_disable_press = !enable;
 	unlock();
 }
 
@@ -1079,7 +1078,7 @@ static inline bool query_hotkey(size_t idx, obs_hotkey_binding_t *binding,
 	UNUSED_PARAMETER(idx);
 
 	uint32_t modifiers = *(uint32_t*)data;
-	bool no_primary    = obs->hotkeys.thread_disable_primary;
+	bool no_press      = obs->hotkeys.thread_disable_press;
 	handle_binding(binding, modifiers, no_primary, NULL);
 
 	return true;
