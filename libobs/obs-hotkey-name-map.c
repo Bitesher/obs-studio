@@ -349,8 +349,8 @@ obs_key_t obs_key_from_name(const char *name)
 	if (!obs)
 		return obs_key_from_name_fallback(name);
 
-	if (!obs->hotkeys.name_map)
-		pthread_once(&obs->hotkeys.name_map_init_token, init_name_map);
+	if (pthread_once(&obs->hotkeys.name_map_init_token, init_name_map))
+		return obs_key_from_name_fallback(name);
 
 	int v = 0;
 	if (obs_hotkey_name_map_lookup(obs->hotkeys.name_map, name, &v))

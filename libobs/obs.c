@@ -627,6 +627,7 @@ static inline bool obs_init_handlers(void)
 	return signal_handler_add_array(obs->signals, obs_signals);
 }
 
+static pthread_once_t obs_pthread_once_init_token = PTHREAD_ONCE_INIT;
 static inline bool obs_init_hotkeys(void)
 {
 	struct obs_core_hotkeys *hotkeys = &obs->hotkeys;
@@ -637,6 +638,7 @@ static inline bool obs_init_hotkeys(void)
 
 	da_init(hotkeys->hotkeys);
 	hotkeys->signals = obs->signals;
+	hotkeys->name_map_init_token = obs_pthread_once_init_token;
 
 	if (!obs_hotkeys_platform_init(hotkeys))
 		return false;
