@@ -282,6 +282,7 @@ struct obs_core_hotkeys {
 	bool                            hotkey_thread_initialized;
 	os_event_t                      *stop_event;
 	bool                            thread_disable_press : 1;
+	bool                            strict_modifiers : 1;
 	DARRAY(obs_hotkey_binding_t)    bindings;
 
 	obs_hotkeys_platform_t          *platform_context;

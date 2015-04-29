@@ -215,6 +215,8 @@ EXPORT void obs_hotkey_inject_event(obs_key_combination_t hotkey, bool pressed);
 
 EXPORT void obs_hotkey_enable_background_press(bool enable);
 
+EXPORT void obs_hotkey_enable_strict_modifiers(bool enable);
+
 /* misc */
 
 
