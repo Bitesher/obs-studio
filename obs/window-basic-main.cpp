@@ -728,6 +728,7 @@ void OBSBasic::InitHotkeyTranslations()
 	t.apple_keypad_plus            = Str("Hotkeys.AppleKeypadAdd");
 	t.apple_keypad_minus           = Str("Hotkeys.AppleKeypadSubtract");
 	t.apple_keypad_decimal         = Str("Hotkeys.AppleKeypadDecimal");
+	t.apple_keypad_equal           = Str("Hotkeys.AppleKeypadEqual");
 	t.mouse_num                    = Str("Hotkeys.MouseButton");
 	obs_hotkeys_set_translations(&t);
 }

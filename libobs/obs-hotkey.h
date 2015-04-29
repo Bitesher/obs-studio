@@ -108,6 +108,7 @@ struct obs_hotkeys_translations {
 	const char *apple_keypad_minus;
 	const char *apple_keypad_plus;
 	const char *apple_keypad_decimal;
+	const char *apple_keypad_equal;
 	const char *mouse_num; /* For example, "Mouse %1" */
 };
 

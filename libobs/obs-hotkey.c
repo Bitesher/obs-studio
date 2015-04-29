@@ -1192,6 +1192,7 @@ void obs_hotkeys_set_translations_s(
 	ADD_TRANSLATION(OBS_KEY_NUMMINUS, apple_keypad_minus);
 	ADD_TRANSLATION(OBS_KEY_NUMPLUS, apple_keypad_plus);
 	ADD_TRANSLATION(OBS_KEY_NUMPERIOD, apple_keypad_decimal);
+	ADD_TRANSLATION(OBS_KEY_NUMEQUAL, apple_keypad_equal);
 #else
 	const char *numpad_str = t.numpad_num;
 	ADD_TRANSLATION(OBS_KEY_NUMSLASH, numpad_divide);
