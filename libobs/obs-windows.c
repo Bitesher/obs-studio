@@ -399,10 +399,6 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 		dstr_from_wcs(str, name);
 }
 
-void obs_key_combination_to_str(obs_key_combination_t key, struct dstr *str)
-{
-}
-
 obs_key_t obs_key_from_virtual_key(int code)
 {
 	obs_hotkeys_platform_t *platform = obs->hotkeys.platform_context;
