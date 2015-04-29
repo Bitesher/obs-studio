@@ -658,11 +658,13 @@ void OBSBasic::OBSInit()
 	}
 
 	InitOBSCallbacks();
+	InitHotkeyTranslations();
 
 	AddExtraModulePaths();
 	obs_load_all_modules();
 
 	ResetOutputs();
+	InitHotkeys();
 
 	if (!InitService())
 		throw "Failed to initialize service";
@@ -671,7 +673,6 @@ void OBSBasic::OBSInit()
 
 	Load(savePath);
 	ResetAudioDevices();
-	InitHotkeys();
 
 	TimedCheckForUpdates();
 	loaded = true;
@@ -685,6 +686,50 @@ void OBSBasic::OBSInit()
 	if (!previewEnabled)
 		QMetaObject::invokeMethod(this, "TogglePreview",
 				Qt::QueuedConnection);
+}
+
+void OBSBasic::InitHotkeyTranslations()
+{
+	struct obs_hotkeys_translations t = {};
+	t.insert                       = Str("Hotkeys.Insert");
+	t.del                          = Str("Hotkeys.Delete");
+	t.home                         = Str("Hotkeys.Home");
+	t.end                          = Str("Hotkeys.End");
+	t.page_up                      = Str("Hotkeys.PageUp");
+	t.page_down                    = Str("Hotkeys.PageDown");
+	t.num_lock                     = Str("Hotkeys.NumLock");
+	t.scroll_lock                  = Str("Hotkeys.ScrollLock");
+	t.caps_lock                    = Str("Hotkeys.CapsLock");
+	t.backspace                    = Str("Hotkeys.Backspace");
+	t.tab                          = Str("Hotkeys.Tab");
+	t.print                        = Str("Hotkeys.Print");
+	t.pause                        = Str("Hotkeys.Pause");
+	t.left                         = Str("Hotkeys.Left");
+	t.right                        = Str("Hotkeys.Right");
+	t.up                           = Str("Hotkeys.Up");
+	t.down                         = Str("Hotkeys.Down");
+#ifdef _WIN32
+	t.super_left                   = Str("Hotkeys.WindowsKeyLeft");
+	t.super_right                  = Str("Hotkeys.WindowsKeyRight");
+#else
+	t.super_left                   = Str("Hotkeys.SuperLeft");
+	t.super_right                  = Str("Hotkeys.SuperRight");
+#endif
+	t.menu                         = Str("Hotkeys.Menu");
+	t.numpad_num                   = Str("Hotkeys.NumpadNum");
+	t.numpad_multiply              = Str("Hotkeys.NumpadMultiply");
+	t.numpad_divide                = Str("Hotkeys.NumpadDivide");
+	t.numpad_plus                  = Str("Hotkeys.NumpadAdd");
+	t.numpad_minus                 = Str("Hotkeys.NumpadSubtract");
+	t.numpad_decimal               = Str("Hotkeys.NumpadDecimal");
+	t.apple_keypad_num             = Str("Hotkeys.AppleKeypadNum");
+	t.apple_keypad_multiply        = Str("Hotkeys.AppleKeypadMultiply");
+	t.apple_keypad_divide          = Str("Hotkeys.AppleKeypadDivide");
+	t.apple_keypad_plus            = Str("Hotkeys.AppleKeypadAdd");
+	t.apple_keypad_minus           = Str("Hotkeys.AppleKeypadSubtract");
+	t.apple_keypad_decimal         = Str("Hotkeys.AppleKeypadDecimal");
+	t.mouse_num                    = Str("Hotkeys.MouseButton");
+	obs_hotkeys_set_translations(&t);
 }
 
 #if 0
@@ -770,47 +815,6 @@ static inline void InitStartStopPair(OBSBasic &basic, ConfigFile &config,
 
 void OBSBasic::InitHotkeys()
 {
-	struct obs_hotkeys_translations t = {};
-	t.insert                       = Str("Hotkeys.Insert");
-	t.del                          = Str("Hotkeys.Delete");
-	t.home                         = Str("Hotkeys.Home");
-	t.end                          = Str("Hotkeys.End");
-	t.page_up                      = Str("Hotkeys.PageUp");
-	t.page_down                    = Str("Hotkeys.PageDown");
-	t.num_lock                     = Str("Hotkeys.NumLock");
-	t.scroll_lock                  = Str("Hotkeys.ScrollLock");
-	t.caps_lock                    = Str("Hotkeys.CapsLock");
-	t.backspace                    = Str("Hotkeys.Backspace");
-	t.tab                          = Str("Hotkeys.Tab");
-	t.print                        = Str("Hotkeys.Print");
-	t.pause                        = Str("Hotkeys.Pause");
-	t.left                         = Str("Hotkeys.Left");
-	t.right                        = Str("Hotkeys.Right");
-	t.up                           = Str("Hotkeys.Up");
-	t.down                         = Str("Hotkeys.Down");
-#ifdef _WIN32
-	t.super_left                   = Str("Hotkeys.WindowsKeyLeft");
-	t.super_right                  = Str("Hotkeys.WindowsKeyRight");
-#else
-	t.super_left                   = Str("Hotkeys.SuperLeft");
-	t.super_right                  = Str("Hotkeys.SuperRight");
-#endif
-	t.menu                         = Str("Hotkeys.Menu");
-	t.numpad_num                   = Str("Hotkeys.NumpadNum");
-	t.numpad_multiply              = Str("Hotkeys.NumpadMultiply");
-	t.numpad_divide                = Str("Hotkeys.NumpadDivide");
-	t.numpad_plus                  = Str("Hotkeys.NumpadAdd");
-	t.numpad_minus                 = Str("Hotkeys.NumpadSubtract");
-	t.numpad_decimal               = Str("Hotkeys.NumpadDecimal");
-	t.apple_keypad_num             = Str("Hotkeys.AppleKeypadNum");
-	t.apple_keypad_multiply        = Str("Hotkeys.AppleKeypadMultiply");
-	t.apple_keypad_divide          = Str("Hotkeys.AppleKeypadDivide");
-	t.apple_keypad_plus            = Str("Hotkeys.AppleKeypadAdd");
-	t.apple_keypad_minus           = Str("Hotkeys.AppleKeypadSubtract");
-	t.apple_keypad_decimal         = Str("Hotkeys.AppleKeypadDecimal");
-	t.mouse_num                    = Str("Hotkeys.MouseButton");
-	obs_hotkeys_set_translations(&t);
-
 #if 0
 	InitStartStopPair(*this, basicConfig, streamingHotkeys,
 			*outputHandler.get(),

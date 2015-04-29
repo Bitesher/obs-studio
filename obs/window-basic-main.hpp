@@ -119,6 +119,7 @@ private:
 	void          Save(const char *file);
 	void          Load(const char *file);
 
+	void          InitHotkeyTranslations();
 	void          InitHotkeys();
 
 	bool          InitService();
