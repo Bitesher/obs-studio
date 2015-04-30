@@ -158,6 +158,34 @@ EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
 		void *data0, void *data1);
 
+EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_encoder(
+		obs_encoder_t *encoder,
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1);
+
+EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_output(
+		obs_output_t *output,
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1);
+
+EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_service(
+		obs_service_t *service,
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1);
+
+EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_source(
+		obs_source_t *source,
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1);
+
 EXPORT void obs_hotkey_unregister(obs_hotkey_id id);
 
 EXPORT void obs_hotkey_pair_unregister(obs_hotkey_pair_id id);
