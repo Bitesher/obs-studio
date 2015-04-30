@@ -908,7 +908,7 @@ static inline bool unregister_hotkey_pair(obs_hotkey_pair_id id)
 		return false;
 
 	size_t idx;
-	if (!find_id(id, &idx))
+	if (!find_pair_id(id, &idx))
 		return false;
 
 	da_erase(obs->hotkeys.hotkey_pairs, idx);
