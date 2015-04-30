@@ -1375,12 +1375,20 @@ void OBSBasicSettings::LoadHotkeySettings()
 		return true;
 	}, &keys);
 
+	map<obs_hotkey_id, QLabel*> pairLabels;
+	map<obs_hotkey_id, QString> pairNames;
 
 	auto RegisterHotkey = [&](obs_hotkey_t *key, QLabel *label,
 			OBSHotkeyWidget *hw)
 	{
 		auto registerer_type = obs_hotkey_get_registerer_type(key);
 		void *registerer     = obs_hotkey_get_registerer(key);
+
+		obs_hotkey_id partner = obs_hotkey_get_pair_partner_id(key);
+		if (partner != OBS_INVALID_HOTKEY_ID) {
+			pairLabels.emplace(obs_hotkey_get_id(key), label);
+			pairNames.emplace(partner, label->text());
+		}
 
 		switch (registerer_type) {
 		case OBS_HOTKEY_REGISTERER_FRONTEND:
@@ -1430,6 +1438,16 @@ void OBSBasicSettings::LoadHotkeySettings()
 		LayoutHotkey(id, key, get<0>(d), get<1>(d));
 		return true;
 	}, &data);
+
+	for (auto &name : pairNames) {
+		auto label = pairLabels.find(name.first);
+		if (label == end(pairLabels))
+			continue;
+
+		QString tt = QTStr("Basic.Settings.Hotkeys.Pair");
+		label->second->setToolTip(tt.arg(name.second));
+		label->second->setText(label->second->text().append(" ✳"));
+	}
 
 	AddHotkeys(*layout, *outputsLine, obs_output_get_name, outputs);
 	AddHotkeys(*layout, *scenesLine, obs_source_get_name, scenes);
