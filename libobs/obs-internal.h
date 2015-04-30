@@ -109,6 +109,8 @@ struct obs_hotkey {
 
 	obs_hotkey_registerer_t     registerer_type;
 	void                        *registerer;
+
+	obs_hotkey_id               pair_partner_id;
 };
 
 struct obs_hotkey_pair {

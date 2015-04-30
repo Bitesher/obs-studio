@@ -63,6 +63,11 @@ void *obs_hotkey_get_registerer(const obs_hotkey_t *key)
 	return key->registerer;
 }
 
+obs_hotkey_id obs_hotkey_get_pair_partner_id(const obs_hotkey_t *key)
+{
+	return key->pair_partner_id;
+}
+
 obs_key_combination_t obs_hotkey_binding_get_key_combination(
 		obs_hotkey_binding_t *binding)
 {
@@ -108,6 +113,7 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 	hotkey->data            = data;
 	hotkey->registerer_type = type;
 	hotkey->registerer      = registerer;
+	hotkey->pair_partner_id = OBS_INVALID_HOTKEY_PAIR_ID;
 
 	if (context) {
 		obs_data_array_t *data =
@@ -262,6 +268,7 @@ static void obs_hotkey_pair_second_func(obs_hotkey_id id, obs_hotkey_t *hotkey,
 		pair->pressed1 = pressed;
 }
 
+static inline bool find_id(obs_hotkey_id id, size_t *idx);
 static obs_hotkey_pair_id register_hotkey_pair_internal(
 		obs_hotkey_registerer_t type, void *registerer,
 		struct obs_context_data *context,
@@ -286,6 +293,13 @@ static obs_hotkey_pair_id register_hotkey_pair_internal(
 			type, registerer, context,
 			name1, description1,
 			obs_hotkey_pair_second_func, pair);
+
+	size_t idx;
+	if (find_id(pair->id[0], &idx))
+		obs->hotkeys.hotkeys.array[idx].pair_partner_id = pair->id[1];
+
+	if (find_id(pair->id[1], &idx))
+		obs->hotkeys.hotkeys.array[idx].pair_partner_id = pair->id[0];
 
 	obs_hotkey_pair_id id = pair->pair_id;
 

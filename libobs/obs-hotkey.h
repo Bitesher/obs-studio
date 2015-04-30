@@ -63,6 +63,7 @@ EXPORT const char *obs_hotkey_get_description(const obs_hotkey_t *key);
 EXPORT obs_hotkey_registerer_t obs_hotkey_get_registerer_type(
 		const obs_hotkey_t *key);
 EXPORT void *obs_hotkey_get_registerer(const obs_hotkey_t *key);
+EXPORT obs_hotkey_id obs_hotkey_get_pair_partner_id(const obs_hotkey_t *key);
 
 
 EXPORT obs_key_combination_t obs_hotkey_binding_get_key_combination(
