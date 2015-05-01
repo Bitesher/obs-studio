@@ -827,7 +827,7 @@ static void source_output_audio_line(obs_source_t *source,
 
 	if (source->push_to_talk_enabled && source->push_to_talk_pressed)
 		source->push_to_talk_stop_time = os_time +
-			source->push_to_talk_delay;
+			source->push_to_talk_delay * 1000000;
 
 	bool push_to_talk_active = source->push_to_talk_pressed ||
 		 os_time < source->push_to_talk_stop_time;
