@@ -299,6 +299,9 @@ struct obs_core_hotkeys {
 	signal_handler_t                *signals;
 
 	char                            *translations[OBS_KEY_LAST_VALUE];
+	char                            *mute;
+	char                            *unmute;
+	char                            *push_to_talk;
 };
 
 struct obs_core {
@@ -465,6 +468,14 @@ struct obs_source {
 	gs_texrender_t                  *filter_texrender;
 	enum obs_allow_direct_render    allow_direct;
 	bool                            rendering_filter;
+
+	/* sources specific hotkeys */
+	obs_hotkey_pair_id              mute_unmute_key;
+	obs_hotkey_id                   push_to_talk_key;
+	bool                            push_to_talk_enabled : 1;
+	bool                            push_to_talk_pressed : 1;
+	uint64_t                        push_to_talk_delay;
+	uint64_t                        push_to_talk_stop_time;
 };
 
 extern const struct obs_source_info *find_source(struct darray *list,

@@ -1422,3 +1422,14 @@ const char *obs_get_hotkey_translation(obs_key_t key, const char *def)
 	return obs->hotkeys.translations[key] ?
 		obs->hotkeys.translations[key] : def;
 }
+
+void obs_hotkeys_set_audio_hotkeys_translations(const char *mute,
+		const char *unmute, const char *push_to_talk)
+{
+#define SET_T(n) bfree(obs->hotkeys.n); obs->hotkeys.n = bstrdup(n)
+	SET_T(mute);
+	SET_T(unmute);
+	SET_T(push_to_talk);
+#undef SET_T
+}
+

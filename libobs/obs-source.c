@@ -153,6 +153,66 @@ bool obs_source_init(struct obs_source *source,
 	return true;
 }
 
+static bool obs_source_hotkey_mute(obs_hotkey_pair_id id, obs_hotkey_t *key,
+		bool pressed, void *data)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(key);
+
+	struct obs_source *source = data;
+
+	if (!pressed || obs_source_muted(source)) return false;
+
+	obs_source_set_muted(source, true);
+	return true;
+}
+
+static bool obs_source_hotkey_unmute(obs_hotkey_pair_id id, obs_hotkey_t *key,
+		bool pressed, void *data)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(key);
+
+	struct obs_source *source = data;
+
+	if (!pressed || !obs_source_muted(source)) return false;
+
+	obs_source_set_muted(source, false);
+	return true;
+}
+
+static void obs_source_hotkey_push_to_talk(obs_hotkey_id id, obs_hotkey_t *key,
+		bool pressed, void *data)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(key);
+
+	struct obs_source *source = data;
+
+	pthread_mutex_lock(&source->audio_mutex);
+	source->push_to_talk_pressed = pressed;
+	pthread_mutex_unlock(&source->audio_mutex);
+}
+
+static void obs_source_init_audio_hotkeys(struct obs_source *source)
+{
+	if (!(source->info.output_flags & OBS_SOURCE_AUDIO)) {
+		source->mute_unmute_key  = OBS_INVALID_HOTKEY_ID;
+		source->push_to_talk_key = OBS_INVALID_HOTKEY_ID;
+		return;
+	}
+
+	source->mute_unmute_key = obs_hotkey_pair_register_source(source,
+			"libobs.mute", obs->hotkeys.mute,
+			"libobs.unmute", obs->hotkeys.unmute,
+			obs_source_hotkey_mute, obs_source_hotkey_unmute,
+			source, source);
+
+	source->push_to_talk_key = obs_hotkey_register_source(source,
+			"libobs.push-to-talk", obs->hotkeys.push_to_talk,
+			obs_source_hotkey_push_to_talk, source);
+}
+
 static inline void obs_source_dosignal(struct obs_source *source,
 		const char *signal_obs, const char *signal_source)
 {
@@ -192,6 +252,8 @@ obs_source_t *obs_source_create(enum obs_source_type type, const char *id,
 
 	if (!obs_source_init(source, info))
 		goto fail;
+
+	obs_source_init_audio_hotkeys(source);
 
 	/* allow the source to be created even if creation fails so that the
 	 * user's data doesn't become lost */
@@ -763,7 +825,14 @@ static void source_output_audio_line(obs_source_t *source,
 		source->present_volume * obs->audio.user_volume *
 		obs->audio.present_volume;
 
-	if (!source->enabled || source->muted)
+	if (source->push_to_talk_enabled && source->push_to_talk_pressed)
+		source->push_to_talk_stop_time = os_time +
+			source->push_to_talk_delay;
+
+	bool push_to_talk_active = source->push_to_talk_pressed ||
+		 os_time < source->push_to_talk_stop_time;
+	if (!source->enabled || source->muted ||
+			(source->push_to_talk_enabled && !push_to_talk_active))
 		in.volume = 0.0f;
 
 	audio_line_output(source->audio_line, &in);
@@ -2752,3 +2821,40 @@ void obs_source_set_muted(obs_source_t *source, bool muted)
 
 	calldata_free(&data);
 }
+
+bool obs_source_push_to_talk_enabled(obs_source_t *source)
+{
+	bool enabled;
+
+	pthread_mutex_lock(&source->audio_mutex);
+	enabled = source->push_to_talk_enabled;
+	pthread_mutex_unlock(&source->audio_mutex);
+
+	return enabled;
+}
+
+void obs_source_enable_push_to_talk(obs_source_t *source, bool enabled)
+{
+	pthread_mutex_lock(&source->audio_mutex);
+	source->push_to_talk_enabled = enabled;
+	pthread_mutex_unlock(&source->audio_mutex);
+}
+
+uint64_t obs_source_get_push_to_talk_delay(obs_source_t *source)
+{
+	uint64_t delay;
+
+	pthread_mutex_lock(&source->audio_mutex);
+	delay = source->push_to_talk_delay;
+	pthread_mutex_unlock(&source->audio_mutex);
+
+	return delay;
+}
+
+void obs_source_set_push_to_talk_delay(obs_source_t *source, uint64_t delay)
+{
+	pthread_mutex_lock(&source->audio_mutex);
+	source->push_to_talk_delay = delay;
+	pthread_mutex_unlock(&source->audio_mutex);
+}
+
