@@ -215,10 +215,14 @@ void log_system_info(void)
  * applies to checking key press states.
  */
 
+struct keycode_list {
+	DARRAY(xcb_keycode_t) list;
+};
+
 struct obs_hotkeys_platform {
 	Display *display;
 	xcb_keysym_t base_keysyms[OBS_KEY_LAST_VALUE];
-	xcb_keycode_t keycodes[OBS_KEY_LAST_VALUE];
+	struct keycode_list keycodes[OBS_KEY_LAST_VALUE];
 	xcb_keycode_t min_keycode;
 
 	/* stores a copy of the keysym map for keycodes */
@@ -570,8 +574,9 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 
 			key = key_from_base_keysym(context, sym[i]);
 
-			if (key != OBS_KEY_NONE && !context->keycodes[key]) {
-				context->keycodes[key] = (xcb_keycode_t)code;
+			if (key != OBS_KEY_NONE) {
+				xcb_keycode_t kc = (xcb_keycode_t)code;
+				da_push_back(context->keycodes[key].list, &kc);
 				break;
 			}
 		}
@@ -601,9 +606,15 @@ bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
 
 void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
 {
-	XCloseDisplay(hotkeys->platform_context->display);
-	bfree(hotkeys->platform_context->keysyms);
-	bfree(hotkeys->platform_context);
+	obs_hotkeys_platform_t *context = hotkeys->platform_context;
+
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++)
+		da_free(context->keycodes[i].list);
+
+	XCloseDisplay(context->display);
+	bfree(context->keysyms);
+	bfree(context);
+
 	hotkeys->platform_context = NULL;
 }
 
@@ -664,10 +675,16 @@ static bool mouse_button_pressed(xcb_connection_t *connection,
 	return ret;
 }
 
+static inline bool keycode_pressed(xcb_query_keymap_reply_t *reply,
+		xcb_keycode_t code)
+{
+	return (reply->keys[code / 8] & (1 << (code % 8))) != 0;
+}
+
 static bool key_pressed(xcb_connection_t *connection,
 		obs_hotkeys_platform_t *context, obs_key_t key)
 {
-	xcb_keycode_t code = context->keycodes[key];
+	struct keycode_list *codes = &context->keycodes[key];
 	xcb_generic_error_t *error = NULL;
 	xcb_query_keymap_reply_t *reply;
 	bool pressed = false;
@@ -677,7 +694,12 @@ static bool key_pressed(xcb_connection_t *connection,
 	if (error) {
 		blog(LOG_WARNING, "xcb_query_keymap failed");
 	} else {
-		pressed = (reply->keys[code / 8] & (1 << (code % 8))) != 0;
+		for (size_t i = 0; i < codes->list.num; i++) {
+			if (keycode_pressed(reply, codes->list.array[i])) {
+				pressed = true;
+				break;
+			}
+		}
 	}
 
 	free(reply);
@@ -696,20 +718,34 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 		return key_pressed(connection, context, key);
 }
 
-int get_keycode(obs_key_t key)
+static bool get_key_translation(struct dstr *dstr, xcb_keycode_t keycode)
 {
-	return (int)obs->hotkeys.platform_context->keycodes[(int)key];
+	xcb_connection_t *connection;
+	char name[128];
+
+	connection = XGetXCBConnection(obs->hotkeys.platform_context->display);
+
+	XKeyEvent event = {0};
+	event.type = KeyPress;
+	event.display = obs->hotkeys.platform_context->display;
+	event.keycode = keycode;
+	event.root = root_window(obs->hotkeys.platform_context, connection);
+	event.window = event.root;
+
+	if (keycode) {
+		int len = XLookupString(&event, name, 128, NULL, NULL);
+		if (len) {
+			dstr_ncopy(dstr, name, len);
+			dstr_to_upper(dstr);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 {
-	xcb_connection_t *connection;
-	XKeyEvent event = {0};
-	char name[128];
-	int keycode;
-
-	connection = XGetXCBConnection(obs->hotkeys.platform_context->display);
-
 	if (key >= OBS_KEY_MOUSE1 && key <= OBS_KEY_MOUSE29) {
 		if (obs->hotkeys.translations[key]) {
 			dstr_copy(dstr, obs->hotkeys.translations[key]);
@@ -771,18 +807,12 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 		return;
 	}
 
-	keycode = get_keycode(key);
-	event.type = KeyPress;
-	event.display = obs->hotkeys.platform_context->display;
-	event.keycode = keycode;
-	event.root = root_window(obs->hotkeys.platform_context, connection);
-	event.window = event.root;
+	obs_hotkeys_platform_t *context = obs->hotkeys.platform_context;
+	struct keycode_list *keycodes = &context->keycodes[key];
 
-	if (keycode) {
-		int len = XLookupString(&event, name, 128, NULL, NULL);
-		if (len) {
-			dstr_ncopy(dstr, name, len);
-			dstr_to_upper(dstr);
+	for (size_t i = 0; i < keycodes->list.num; i++) {
+		if (get_key_translation(dstr, keycodes->list.array[i])) {
+			break;
 		}
 	}
 
@@ -795,8 +825,12 @@ static obs_key_t key_from_keycode(obs_hotkeys_platform_t *context,
 		xcb_keycode_t code)
 {
 	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
-		if (context->keycodes[i] == (xcb_keysym_t)code) {
-			return (obs_key_t)i;
+		struct keycode_list *codes = &context->keycodes[i];
+
+		for (size_t j = 0; j < codes->list.num; j++) {
+			if (codes->list.array[j] == code) {
+				return (obs_key_t)i;
+			}
 		}
 	}
 
