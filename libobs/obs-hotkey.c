@@ -1121,7 +1121,8 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 	if (binding->pressed || no_press)
 		return;
 
-	return press_released_binding(binding);
+	press_released_binding(binding);
+	return;
 
 reset:
 	binding->modifiers_match = modifiers_match_;
