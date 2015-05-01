@@ -2839,6 +2839,12 @@ void obs_source_enable_push_to_talk(obs_source_t *source, bool enabled)
 	if (!source) return;
 
 	pthread_mutex_lock(&source->audio_mutex);
+	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO &&
+			source->push_to_talk_enabled != enabled)
+		blog(LOG_INFO, "source '%s' %s push-to-talk",
+				obs_source_get_name(source),
+				enabled ? "enabled" : "disabled");
+
 	source->push_to_talk_enabled = enabled;
 	pthread_mutex_unlock(&source->audio_mutex);
 }
