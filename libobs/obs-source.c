@@ -2825,6 +2825,7 @@ void obs_source_set_muted(obs_source_t *source, bool muted)
 bool obs_source_push_to_talk_enabled(obs_source_t *source)
 {
 	bool enabled;
+	if (!source) return false;
 
 	pthread_mutex_lock(&source->audio_mutex);
 	enabled = source->push_to_talk_enabled;
@@ -2835,6 +2836,8 @@ bool obs_source_push_to_talk_enabled(obs_source_t *source)
 
 void obs_source_enable_push_to_talk(obs_source_t *source, bool enabled)
 {
+	if (!source) return;
+
 	pthread_mutex_lock(&source->audio_mutex);
 	source->push_to_talk_enabled = enabled;
 	pthread_mutex_unlock(&source->audio_mutex);
@@ -2843,6 +2846,7 @@ void obs_source_enable_push_to_talk(obs_source_t *source, bool enabled)
 uint64_t obs_source_get_push_to_talk_delay(obs_source_t *source)
 {
 	uint64_t delay;
+	if (!source) return 0;
 
 	pthread_mutex_lock(&source->audio_mutex);
 	delay = source->push_to_talk_delay;
@@ -2853,6 +2857,8 @@ uint64_t obs_source_get_push_to_talk_delay(obs_source_t *source)
 
 void obs_source_set_push_to_talk_delay(obs_source_t *source, uint64_t delay)
 {
+	if (!source) return;
+
 	pthread_mutex_lock(&source->audio_mutex);
 	source->push_to_talk_delay = delay;
 	pthread_mutex_unlock(&source->audio_mutex);
