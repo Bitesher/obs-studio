@@ -825,17 +825,17 @@ void OBSBasic::CreateHotkeys()
 			*outputHandler.get(),
 			&BasicOutputHandler::StreamingActive,
 			"StartStreaming", "StartStreaming",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartStreaming")),
+			Str("Basic.Hotkeys.StartStreaming"),
 			"StopStreaming", "StopStreaming",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")));
+			Str("Basic.Hotkeys.StopStreaming"));
 
 	InitStartStopPair(*this, basicConfig, recordingHotkeys,
 			*outputHandler.get(),
 			&BasicOutputHandler::RecordingActive,
 			"StartRecording", "StartRecording",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
+			Str("Basic.Hotkeys.StartRecording"),
 			"StopRecording", "StopRecording",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")));
+			Str("Basic.Hotkeys.StopRecording"));
 #else
 
 	auto LoadHotkeyData = [&](const char *name) -> OBSData
@@ -882,9 +882,9 @@ void OBSBasic::CreateHotkeys()
 
 	streamingHotkeys = obs_hotkey_pair_register_frontend(
 			"StartStreaming",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartStreaming")),
+			Str("Basic.Hotkeys.StartStreaming"),
 			"StopStreaming",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")),
+			Str("Basic.Hotkeys.StopStreaming"),
 			MAKE_CALLBACK(!basic.outputHandler->StreamingActive(),
 				basic.StartStreaming),
 			MAKE_CALLBACK(basic.outputHandler->StreamingActive(),
@@ -894,9 +894,9 @@ void OBSBasic::CreateHotkeys()
 
 	recordingHotkeys = obs_hotkey_pair_register_frontend(
 			"StartRecording",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
+			Str("Basic.Hotkeys.StartRecording"),
 			"StopRecording",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")),
+			Str("Basic.Hotkeys.StopRecording"),
 			MAKE_CALLBACK(!basic.outputHandler->RecordingActive(),
 				basic.StartRecording),
 			MAKE_CALLBACK(basic.outputHandler->RecordingActive(),
@@ -1090,7 +1090,7 @@ void OBSBasic::AddScene(OBSSource source)
 	ui->scenes->addItem(item);
 
 	obs_hotkey_register_source(source, "BasicSelectScene",
-			QT_TO_UTF8(QTStr("Basic.Hotkeys.SelectScene")),
+			Str("Basic.Hotkeys.SelectScene"),
 			[](obs_hotkey_id, obs_hotkey_t*, bool pressed,
 				void *data)
 	{
