@@ -77,6 +77,9 @@ private:
 	OBSPropertiesView *streamEncoderProps = nullptr;
 	OBSPropertiesView *recordEncoderProps = nullptr;
 
+	using AudioSource_t =
+		std::tuple<OBSSource, QPointer<QCheckBox>, QPointer<QSpinBox>>;
+	std::vector<AudioSource_t> audioSources;
 	std::vector<std::pair<bool, QPointer<OBSHotkeyWidget>>> hotkeys;
 
 	void SaveCombo(QComboBox *widget, const char *section,
@@ -159,6 +162,7 @@ private:
 	void LoadListValues(QComboBox *widget, obs_property_t *prop,
 		const char *configName);
 	void LoadAudioDevices();
+	void LoadAudioSources();
 
 	/* video */
 	void LoadRendererList();

@@ -1220,6 +1220,64 @@ void OBSBasicSettings::LoadAudioDevices()
 	}
 }
 
+void OBSBasicSettings::LoadAudioSources()
+{
+	auto &layout = *ui->audioSourceLayout;
+
+	const char *enablePtt = Str("Basic.Settings.Audio.EnablePushToTalk");
+	const char *pttDelay  = Str("Basic.Settings.Audio.PushToTalkDelay");
+	auto AddSource = [&](obs_source_t *source)
+	{
+		if (!(obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO))
+			return true;
+
+		auto form = new QFormLayout();
+		form->setVerticalSpacing(0);
+		form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+
+		auto checkBox = new QCheckBox(enablePtt);
+		checkBox->setChecked(obs_source_push_to_talk_enabled(source));
+		form->addRow(checkBox);
+
+		auto delaySpinBox = new QSpinBox();
+		delaySpinBox->setSuffix(" ms");
+		delaySpinBox->setRange(0, INT_MAX);
+		delaySpinBox->setValue(
+				obs_source_get_push_to_talk_delay(source));
+		form->addRow(pttDelay, delaySpinBox);
+
+		HookWidget(checkBox,     CHECK_CHANGED,  AUDIO_CHANGED);
+		HookWidget(delaySpinBox, SCROLL_CHANGED, AUDIO_CHANGED);
+
+		audioSources.emplace_back(source, checkBox, delaySpinBox);
+
+		layout.addRow(obs_source_get_name(source), form);
+		return true;
+	};
+
+	for (int i = 0; i < MAX_CHANNELS; i++) {
+		obs_source_t *source = obs_get_output_source(i);
+		if (!source) continue;
+
+		AddSource(source);
+		obs_source_release(source);
+	}
+
+	using AddSource_t = decltype(AddSource);
+	obs_enum_sources([](void *data, obs_source_t *source)
+	{
+		auto &AddSource = *static_cast<AddSource_t*>(data);
+		AddSource(source);
+		return true;
+	}, static_cast<void*>(&AddSource));
+
+
+	if (layout.rowCount() == 0)
+		ui->audioSourceScrollArea->hide();
+	else
+		ui->audioSourceScrollArea->show();
+}
+
 void OBSBasicSettings::LoadAudioSettings()
 {
 	uint32_t sampleRate = config_get_uint(main->Config(), "Audio",
@@ -1247,6 +1305,7 @@ void OBSBasicSettings::LoadAudioSettings()
 		ui->channelSetup->setCurrentIndex(1);
 
 	LoadAudioDevices();
+	LoadAudioSources();
 
 	loading = false;
 }
@@ -1736,6 +1795,15 @@ void OBSBasicSettings::SaveAudioSettings()
 	SaveComboData(ui->auxAudioDevice1, "Audio", "AuxDevice1");
 	SaveComboData(ui->auxAudioDevice2, "Audio", "AuxDevice2");
 	SaveComboData(ui->auxAudioDevice3, "Audio", "AuxDevice3");
+
+	for (auto &audioSource : audioSources) {
+		auto &source = get<0>(audioSource);
+		auto &check  = get<1>(audioSource);
+		auto &spin   = get<2>(audioSource);
+
+		obs_source_enable_push_to_talk(source, check->isChecked());
+		obs_source_set_push_to_talk_delay(source, spin->value());
+	}
 
 	main->ResetAudioDevices();
 }
