@@ -973,7 +973,8 @@ static void context_release_hotkey_pairs(struct obs_context_data *context)
 
 	bool need_fixup = false;
 	for (size_t i = 0; i < context->hotkey_pairs.num; i++)
-		need_fixup = unregister_hotkey_pair(context->hotkeys.array[i])
+		need_fixup =
+			unregister_hotkey_pair(context->hotkey_pairs.array[i])
 			|| need_fixup;
 
 	if (need_fixup)
