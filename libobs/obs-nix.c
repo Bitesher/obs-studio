@@ -239,7 +239,6 @@ static int get_keysym(obs_key_t key)
 	case OBS_KEY_RETURN: return XK_Return;
 	case OBS_KEY_ESCAPE: return XK_Escape;
 	case OBS_KEY_TAB: return XK_Tab;
-	case OBS_KEY_BACKTAB: return XK_3270_BackTab;
 	case OBS_KEY_BACKSPACE: return XK_BackSpace;
 	case OBS_KEY_INSERT: return XK_Insert;
 	case OBS_KEY_DELETE: return XK_Delete;
@@ -483,7 +482,7 @@ static int get_keysym(obs_key_t key)
 	case OBS_KEY_DEAD_MACRON: return XK_dead_macron;
 	case OBS_KEY_DEAD_BREVE: return XK_dead_breve;
 	case OBS_KEY_DEAD_ABOVEDOT: return XK_dead_abovedot;
-	case OBS_KEY_DEAD_DIAERESIS: return XK_dead_daieresis;
+	case OBS_KEY_DEAD_DIAERESIS: return XK_dead_diaeresis;
 	case OBS_KEY_DEAD_ABOVERING: return XK_dead_abovering;
 	case OBS_KEY_DEAD_DOUBLEACUTE: return XK_dead_doubleacute;
 	case OBS_KEY_DEAD_CARON: return XK_dead_caron;
