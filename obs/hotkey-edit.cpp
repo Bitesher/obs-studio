@@ -286,7 +286,6 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 		reset->setEnabled(edit->original != new_combo);
 	});
 
-	//TODO: localize + and -
 	auto add = new QPushButton;
 	add->setText("+");
 
