@@ -316,6 +316,26 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	LoadEncoderTypes();
 	LoadColorRanges();
 	LoadFormats();
+
+	auto ReloadHotkeys = [](void *data, calldata_t*)
+	{
+		auto settings = static_cast<OBSBasicSettings*>(data);
+		QMetaObject::invokeMethod(settings, "ReloadHotkeys");
+	};
+	hotkeyRegistered.Connect(obs_get_signal_handler(), "hotkey_register",
+			ReloadHotkeys, this);
+
+	auto ReloadHotkeysIgnore = [](void *data, calldata_t *param)
+	{
+		auto settings = static_cast<OBSBasicSettings*>(data);
+		auto key      = static_cast<obs_hotkey_t*>(
+					calldata_ptr(param,"key"));
+		QMetaObject::invokeMethod(settings, "ReloadHotkeys",
+				Q_ARG(obs_hotkey_id, obs_hotkey_get_id(key)));
+	};
+	hotkeyUnregistered.Connect(obs_get_signal_handler(),
+			"hotkey_unregister", ReloadHotkeysIgnore, this);
+
 	LoadSettings(false);
 }
 
@@ -1377,21 +1397,19 @@ static inline void LayoutHotkey(obs_hotkey_id id, obs_hotkey_t *key, Func &&fun,
 }
 
 template <typename Func, typename T>
-static QLabel *makeLabel(T &t, Func &&getName, OBSSourceLabel *& sourceLabel)
+static QLabel *makeLabel(T &t, Func &&getName)
 {
-	sourceLabel = nullptr;
 	return new QLabel(getName(t));
 }
 
 template <typename Func>
-static QLabel *makeLabel(const OBSSource &source, Func &&,
-		OBSSourceLabel *&sourceLabel)
+static QLabel *makeLabel(const obs_source_t *&source, Func &&)
 {
-	return sourceLabel = new OBSSourceLabel(source);
+	return new OBSSourceLabel(source);
 }
 
-template <typename ConnectFunc, typename Func, typename T>
-static inline void AddHotkeys(ConnectFunc &Connect, QFormLayout &layout,
+template <typename Func, typename T>
+static inline void AddHotkeys(QFormLayout &layout,
 		Func &&getName, std::vector<
 			std::tuple<T, QPointer<QLabel>, QPointer<QWidget>>
 		> &hotkeys)
@@ -1423,30 +1441,21 @@ static inline void AddHotkeys(ConnectFunc &Connect, QFormLayout &layout,
 	});
 
 	string prevName;
-	OBSSourceLabel *label = nullptr;
 	for (const auto &hotkey : hotkeys) {
 		const auto &o = get<0>(hotkey);
 		const char *name = getName(o);
 		if (prevName != name) {
 			prevName = name;
-			auto label_ = makeLabel(o, getName, label);
-			layout.addRow(label_);
+			layout.addRow(makeLabel(o, getName));
 		}
 
 		auto hlabel = get<1>(hotkey);
 		auto widget = get<2>(hotkey);
 		layout.addRow(hlabel, widget);
-
-		if (!label)
-			continue;
-
-		Connect(label, &OBSSourceLabel::Removed);
-		Connect(label, &OBSSourceLabel::Destroyed);
-		//TODO add signals for desktop audio sources?
 	}
 }
 
-void OBSBasicSettings::LoadHotkeySettings()
+void OBSBasicSettings::LoadHotkeySettings(obs_hotkey_id ignoreKey)
 {
 	hotkeys.clear();
 	ui->hotkeyPage->takeWidget()->deleteLater();
@@ -1470,7 +1479,7 @@ void OBSBasicSettings::LoadHotkeySettings()
 	using services_elem_t =
 		tuple<obs_service_t*, QPointer<QLabel>, QPointer<QWidget>>;
 	using sources_elem_t =
-		tuple<OBSSource, QPointer<QLabel>, QPointer<QWidget>>;
+		tuple<obs_source_t*, QPointer<QLabel>, QPointer<QWidget>>;
 	vector<encoders_elem_t> encoders;
 	vector<outputs_elem_t>  outputs;
 	vector<services_elem_t> services;
@@ -1511,7 +1520,7 @@ void OBSBasicSettings::LoadHotkeySettings()
 			break;
 
 		case OBS_HOTKEY_REGISTERER_SOURCE: {
-			OBSSource source =
+			auto source =
 				static_cast<obs_source_t*>(registerer);
 			if (obs_scene_from_source(source))
 				scenes.emplace_back(source, label, hw);
@@ -1545,12 +1554,13 @@ void OBSBasicSettings::LoadHotkeySettings()
 				this, &OBSBasicSettings::HotkeysChanged);
 	};
 
-	auto data = make_tuple(RegisterHotkey, std::move(keys));
+	auto data = make_tuple(RegisterHotkey, std::move(keys), ignoreKey);
 	using data_t = decltype(data);
 	obs_enum_hotkeys([](obs_hotkey_id id, obs_hotkey_t *key, void *data)
 	{
 		data_t &d = *static_cast<data_t*>(data);
-		LayoutHotkey(id, key, get<0>(d), get<1>(d));
+		if (id != get<2>(d))
+			LayoutHotkey(id, key, get<0>(d), get<1>(d));
 		return true;
 	}, &data);
 
@@ -1564,20 +1574,11 @@ void OBSBasicSettings::LoadHotkeySettings()
 		label->second->setText(label->second->text().append(" ✳"));
 	}
 
-	auto Connect = [&](OBSSourceLabel *label,
-			void (OBSSourceLabel::*func)())
-	{
-		connect(label, func, [=]()
-		{
-			LoadHotkeySettings();
-		});
-	};
-
-	AddHotkeys(Connect, *layout, obs_output_get_name, outputs);
-	AddHotkeys(Connect, *layout, obs_source_get_name, scenes);
-	AddHotkeys(Connect, *layout, obs_source_get_name, sources);
-	AddHotkeys(Connect, *layout, obs_encoder_get_name, encoders);
-	AddHotkeys(Connect, *layout, obs_service_get_name, services);
+	AddHotkeys(*layout, obs_output_get_name, outputs);
+	AddHotkeys(*layout, obs_source_get_name, scenes);
+	AddHotkeys(*layout, obs_source_get_name, sources);
+	AddHotkeys(*layout, obs_encoder_get_name, encoders);
+	AddHotkeys(*layout, obs_service_get_name, services);
 }
 
 void OBSBasicSettings::LoadSettings(bool changedOnly)
@@ -1872,7 +1873,6 @@ void OBSBasicSettings::SaveAudioSettings()
 
 	main->ResetAudioDevices();
 	LoadAudioSources();
-	LoadHotkeySettings();
 }
 
 void OBSBasicSettings::SaveHotkeySettings()
@@ -2296,6 +2296,11 @@ void OBSBasicSettings::HotkeysChanged()
 
 	if (hotkeysChanged)
 		EnableApplyButton(true);
+}
+
+void OBSBasicSettings::ReloadHotkeys(obs_hotkey_id ignoreKey)
+{
+	LoadHotkeySettings(ignoreKey);
 }
 
 void OBSBasicSettings::AdvancedChanged()

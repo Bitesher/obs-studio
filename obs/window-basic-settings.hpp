@@ -80,7 +80,10 @@ private:
 	using AudioSource_t =
 		std::tuple<OBSSource, QPointer<QCheckBox>, QPointer<QSpinBox>>;
 	std::vector<AudioSource_t> audioSources;
+
 	std::vector<std::pair<bool, QPointer<OBSHotkeyWidget>>> hotkeys;
+	OBSSignal hotkeyRegistered;
+	OBSSignal hotkeyUnregistered;
 
 	void SaveCombo(QComboBox *widget, const char *section,
 			const char *value);
@@ -135,7 +138,7 @@ private:
 	void LoadOutputSettings();
 	void LoadAudioSettings();
 	void LoadVideoSettings();
-	void LoadHotkeySettings();
+	void LoadHotkeySettings(obs_hotkey_id ignoreKey=OBS_INVALID_HOTKEY_ID);
 	void LoadAdvancedSettings();
 	void LoadSettings(bool changedOnly);
 
@@ -213,6 +216,7 @@ private slots:
 	void VideoChangedResolution();
 	void VideoChangedRestart();
 	void HotkeysChanged();
+	void ReloadHotkeys(obs_hotkey_id ignoreKey=OBS_INVALID_HOTKEY_ID);
 	void AdvancedChanged();
 	void AdvancedChangedRestart();
 
