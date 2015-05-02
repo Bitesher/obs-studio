@@ -910,6 +910,9 @@ static inline bool unregister_hotkey(obs_hotkey_id id)
 	if (!find_id(id, &idx))
 		return false;
 
+	bfree(obs->hotkeys.hotkeys.array[idx].name);
+	bfree(obs->hotkeys.hotkeys.array[idx].description);
+
 	da_erase(obs->hotkeys.hotkeys, idx);
 	remove_bindings(id);
 
