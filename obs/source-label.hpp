@@ -22,15 +22,13 @@ class OBSSourceLabel : public QLabel {
 	Q_OBJECT;
 
 public:
-	OBSSource source;
 	OBSSignal renamedSignal;
 	OBSSignal removedSignal;
 	OBSSignal destroyedSignal;
 
-	OBSSourceLabel(OBSSource source, QWidget *parent=nullptr,
+	OBSSourceLabel(const obs_source_t *source, QWidget *parent=nullptr,
 			Qt::WindowFlags f=0)
 		: QLabel(obs_source_get_name(source), parent, f),
-		  source(source),
 		  renamedSignal(obs_source_get_signal_handler(source), "rename",
 				  &OBSSourceLabel::SourceRenamed, this),
 		  removedSignal(obs_source_get_signal_handler(source), "remove",
