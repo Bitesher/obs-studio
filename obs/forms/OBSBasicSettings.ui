@@ -2020,17 +2020,6 @@
             <bool>true</bool>
            </property>
            <widget class="QWidget" name="audioSourceWidget">
-            <layout class="QFormLayout" name="audioSourceLayout">
-             <property name="verticalSpacing">
-              <number>15</number>
-             </property>
-             <property name="fieldGrowthPolicy">
-              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-             </property>
-             <property name="labelAlignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignTop</set>
-             </property>
-            </layout>
            </widget>
           </widget>
          </item>
@@ -2374,41 +2363,6 @@
           <property name="labelAlignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
-          <item>
-           <widget class="Line" name="outputsLine">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="Line" name="scenesLine">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="Line" name="sourcesLine">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="Line" name="encodersLine">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="Line" name="servicesLine">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
        </widget>

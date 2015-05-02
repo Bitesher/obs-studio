@@ -31,6 +31,7 @@
 #include <QSpacerItem>
 
 #include "hotkey-edit.hpp"
+#include "source-label.hpp"
 #include "obs-app.hpp"
 #include "platform.hpp"
 #include "properties-view.hpp"
@@ -1222,7 +1223,16 @@ void OBSBasicSettings::LoadAudioDevices()
 
 void OBSBasicSettings::LoadAudioSources()
 {
-	auto &layout = *ui->audioSourceLayout;
+	auto layout = new QFormLayout();
+	layout->setVerticalSpacing(15);
+	layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+
+	ui->audioSourceScrollArea->takeWidget()->deleteLater();
+	audioSources.clear();
+
+	auto widget = new QWidget();
+	widget->setLayout(layout);
+	ui->audioSourceScrollArea->setWidget(widget);
 
 	const char *enablePtt = Str("Basic.Settings.Audio.EnablePushToTalk");
 	const char *pttDelay  = Str("Basic.Settings.Audio.PushToTalkDelay");
@@ -1251,7 +1261,19 @@ void OBSBasicSettings::LoadAudioSources()
 
 		audioSources.emplace_back(source, checkBox, delaySpinBox);
 
-		layout.addRow(obs_source_get_name(source), form);
+		auto label = new OBSSourceLabel(source);
+		connect(label, &OBSSourceLabel::Removed,
+				[=]()
+				{
+					LoadAudioSources();
+				});
+		connect(label, &OBSSourceLabel::Destroyed,
+				[=]()
+				{
+					LoadAudioSources();
+				});
+
+		layout->addRow(label, form);
 		return true;
 	};
 
@@ -1272,7 +1294,7 @@ void OBSBasicSettings::LoadAudioSources()
 	}, static_cast<void*>(&AddSource));
 
 
-	if (layout.rowCount() == 0)
+	if (layout->rowCount() == 0)
 		ui->audioSourceScrollArea->hide();
 	else
 		ui->audioSourceScrollArea->show();
@@ -1355,19 +1377,35 @@ static inline void LayoutHotkey(obs_hotkey_id id, obs_hotkey_t *key, Func &&fun,
 }
 
 template <typename Func, typename T>
-static inline void AddHotkeys(QFormLayout &layout, QWidget &line,
+static QLabel *makeLabel(T &t, Func &&getName, OBSSourceLabel *& sourceLabel)
+{
+	sourceLabel = nullptr;
+	return new QLabel(getName(t));
+}
+
+template <typename Func>
+static QLabel *makeLabel(const OBSSource &source, Func &&,
+		OBSSourceLabel *&sourceLabel)
+{
+	return sourceLabel = new OBSSourceLabel(source);
+}
+
+template <typename ConnectFunc, typename Func, typename T>
+static inline void AddHotkeys(ConnectFunc &Connect, QFormLayout &layout,
 		Func &&getName, std::vector<
 			std::tuple<T, QPointer<QLabel>, QPointer<QWidget>>
 		> &hotkeys)
 {
-	if (hotkeys.empty()) {
-		line.hide();
+	if (hotkeys.empty())
 		return;
-	}
+
+	auto line = new QFrame();
+	line->setFrameShape(QFrame::HLine);
+	line->setFrameShadow(QFrame::Sunken);
 
 	layout.setItem(layout.rowCount(), QFormLayout::SpanningRole,
 			new QSpacerItem(0, 10));
-	layout.addRow(&line);
+	layout.addRow(line);
 	layout.setItem(layout.rowCount(), QFormLayout::SpanningRole,
 			new QSpacerItem(0, 10));
 
@@ -1385,26 +1423,44 @@ static inline void AddHotkeys(QFormLayout &layout, QWidget &line,
 	});
 
 	string prevName;
+	OBSSourceLabel *label = nullptr;
 	for (const auto &hotkey : hotkeys) {
 		const auto &o = get<0>(hotkey);
 		const char *name = getName(o);
 		if (prevName != name) {
 			prevName = name;
-			layout.addRow(new QLabel(name));
+			auto label_ = makeLabel(o, getName, label);
+			layout.addRow(label_);
 		}
 
-		layout.addRow(get<1>(hotkey), get<2>(hotkey));
+		auto hlabel = get<1>(hotkey);
+		auto widget = get<2>(hotkey);
+		layout.addRow(hlabel, widget);
+
+		if (!label)
+			continue;
+
+		Connect(label, &OBSSourceLabel::Removed);
+		Connect(label, &OBSSourceLabel::Destroyed);
+		//TODO add signals for desktop audio sources?
 	}
 }
 
 void OBSBasicSettings::LoadHotkeySettings()
 {
-	QFormLayout *layout = ui->hotkeyLayout;
-	QWidget *outputsLine = ui->outputsLine;
-	QWidget *scenesLine  = ui->scenesLine;
-	QWidget *sourcesLine = ui->sourcesLine;
-	QWidget *encodersLine = ui->encodersLine;
-	QWidget *servicesLine = ui->servicesLine;
+	hotkeys.clear();
+	ui->hotkeyPage->takeWidget()->deleteLater();
+
+	auto layout = new QFormLayout();
+	layout->setVerticalSpacing(0);
+	layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+	layout->setLabelAlignment(
+			Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+	auto widget = new QWidget();
+	widget->setLayout(layout);
+
+	ui->hotkeyPage->setWidget(widget);
 
 	using namespace std;
 	using encoders_elem_t =
@@ -1508,11 +1564,20 @@ void OBSBasicSettings::LoadHotkeySettings()
 		label->second->setText(label->second->text().append(" ✳"));
 	}
 
-	AddHotkeys(*layout, *outputsLine, obs_output_get_name, outputs);
-	AddHotkeys(*layout, *scenesLine, obs_source_get_name, scenes);
-	AddHotkeys(*layout, *sourcesLine, obs_source_get_name, sources);
-	AddHotkeys(*layout, *encodersLine, obs_encoder_get_name, encoders);
-	AddHotkeys(*layout, *servicesLine, obs_service_get_name, services);
+	auto Connect = [&](OBSSourceLabel *label,
+			void (OBSSourceLabel::*func)())
+	{
+		connect(label, func, [=]()
+		{
+			LoadHotkeySettings();
+		});
+	};
+
+	AddHotkeys(Connect, *layout, obs_output_get_name, outputs);
+	AddHotkeys(Connect, *layout, obs_source_get_name, scenes);
+	AddHotkeys(Connect, *layout, obs_source_get_name, sources);
+	AddHotkeys(Connect, *layout, obs_encoder_get_name, encoders);
+	AddHotkeys(Connect, *layout, obs_service_get_name, services);
 }
 
 void OBSBasicSettings::LoadSettings(bool changedOnly)
@@ -1806,6 +1871,8 @@ void OBSBasicSettings::SaveAudioSettings()
 	}
 
 	main->ResetAudioDevices();
+	LoadAudioSources();
+	LoadHotkeySettings();
 }
 
 void OBSBasicSettings::SaveHotkeySettings()
