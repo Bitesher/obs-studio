@@ -84,6 +84,17 @@ obs_hotkey_t *obs_hotkey_binding_get_hotkey(obs_hotkey_binding_t *binding)
 	return binding->hotkey;
 }
 
+static void hotkey_signal(const char *signal, obs_hotkey_t *hotkey)
+{
+	calldata_t data;
+	calldata_init(&data);
+	calldata_set_ptr(&data, "key", hotkey);
+
+	signal_handler_signal(obs->hotkeys.signals, signal, &data);
+
+	calldata_free(&data);
+}
+
 static inline void fixup_pointers(void);
 static inline void load_bindings(obs_hotkey_t *hotkey, obs_data_array_t *data);
 
@@ -126,6 +137,8 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 
 	if (base_addr != obs->hotkeys.hotkeys.array)
 		fixup_pointers();
+
+	hotkey_signal("hotkey_register", hotkey);
 
 	return result;
 }
@@ -579,6 +592,8 @@ static inline void load_bindings(obs_hotkey_t *hotkey, obs_data_array_t *data)
 		load_binding(hotkey, item);
 		obs_data_release(item);
 	}
+
+	hotkey_signal("hotkey_bindings_change", hotkey);
 }
 
 /*void obs_hotkey_set(obs_hotkey_id id, obs_key_combination_t hotkey)
@@ -619,10 +634,12 @@ void obs_hotkey_load_bindings(obs_hotkey_id id,
 		return;
 
 	if (find_id(id, &idx)) {
+		obs_hotkey_t *hotkey = &obs->hotkeys.hotkeys.array[idx];
 		remove_bindings(id);
 		for (size_t i = 0; i < num; i++)
-			create_binding(&obs->hotkeys.hotkeys.array[idx],
-					combinations[i]);
+			create_binding(hotkey, combinations[i]);
+
+		hotkey_signal("hotkey_bindings_change", hotkey);
 	}
 	unlock();
 }
@@ -910,8 +927,12 @@ static inline bool unregister_hotkey(obs_hotkey_id id)
 	if (!find_id(id, &idx))
 		return false;
 
-	bfree(obs->hotkeys.hotkeys.array[idx].name);
-	bfree(obs->hotkeys.hotkeys.array[idx].description);
+	obs_hotkey_t *hotkey = &obs->hotkeys.hotkeys.array[idx];
+
+	hotkey_signal("hotkey_unregister", hotkey);
+
+	bfree(hotkey->name);
+	bfree(hotkey->description);
 
 	da_erase(obs->hotkeys.hotkeys, idx);
 	remove_bindings(id);

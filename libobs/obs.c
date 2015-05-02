@@ -610,6 +610,9 @@ static const char *obs_signals[] = {
 	"void master_volume(in out float volume)",
 
 	"void hotkey_layout_change()",
+	"void hotkey_register(ptr hotkey)",
+	"void hotkey_unregister(ptr hotkey)",
+	"void hotkey_bindings_change(ptr hotkey)",
 
 	NULL
 };
