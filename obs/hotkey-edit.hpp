@@ -34,8 +34,17 @@ public:
 			QWidget *parent=nullptr)
 		: QWidget(parent),
 		  id(id),
-		  name(name)
+		  name(name),
+		  bindingsChanged(obs_get_signal_handler(),
+				  "hotkey_bindings_change",
+				  &OBSHotkeyWidget::BindingsChanged,
+				  this)
 	{
+		auto layout = new QVBoxLayout;
+		layout->setSpacing(0);
+		layout->setMargin(0);
+		setLayout(layout);
+
 		SetKeyCombinations(combos);
 	}
 
@@ -46,8 +55,10 @@ public:
 	std::vector<QPointer<OBSHotkeyEdit>> edits;
 	std::vector<QPointer<QPushButton>> removeButtons;
 	std::vector<QPointer<QPushButton>> resetButtons;
-	bool changed = false;
+	OBSSignal bindingsChanged;
+	bool ignoreChangedBindings = false;
 
+	bool changed = false;
 	bool Changed() const;
 
 	QVBoxLayout *layout() const
@@ -62,6 +73,12 @@ public:
 
 private:
 	void AddEdit(obs_key_combination combo, int idx=-1);
+	void RemoveEdit(size_t idx, bool signal=true);
+
+	static void BindingsChanged(void *data, calldata_t *param);
+
+private slots:
+	void HandleChangedBindings(obs_hotkey_id id_);
 
 signals:
 	void KeyChanged();

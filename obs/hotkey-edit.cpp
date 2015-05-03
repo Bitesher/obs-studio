@@ -210,11 +210,6 @@ void OBSHotkeyEdit::ReloadKeyLayout()
 void OBSHotkeyWidget::SetKeyCombinations(
 		const std::vector<obs_key_combination_t> &combos)
 {
-	QPointer<QVBoxLayout> layout = new QVBoxLayout;
-	layout->setSpacing(0);
-	layout->setMargin(0);
-	setLayout(layout);
-
 	if (combos.empty())
 		AddEdit({0, OBS_KEY_NONE});
 
@@ -264,7 +259,21 @@ void OBSHotkeyWidget::Save(std::vector<obs_key_combination_t> &combinations)
 	GetCombinations(combinations);
 	Apply();
 
-	obs_hotkey_load_bindings(id, combinations.data(), combinations.size());
+	auto AtomicUpdate = [&]()
+	{
+		ignoreChangedBindings = true;
+
+		obs_hotkey_load_bindings(id,
+				combinations.data(), combinations.size());
+
+		ignoreChangedBindings = false;
+	};
+	using AtomicUpdate_t = decltype(&AtomicUpdate);
+
+	obs_hotkey_update_atomic(static_cast<void*>(&AtomicUpdate), [](void *d)
+	{
+		(*static_cast<AtomicUpdate_t>(d))();
+	});
 }
 
 void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
@@ -310,28 +319,7 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 	QObject::connect(remove, &QPushButton::clicked,
 			[&, CurrentIndex]
 	{
-		auto idx = CurrentIndex();
-
-		auto &edit = *(begin(edits) + idx);
-		if (!obs_key_combination_is_empty(edit->original)) {
-			changed = true;
-			emit KeyChanged();
-		}
-
-		resetButtons.erase(begin(resetButtons) + idx);
-		removeButtons.erase(begin(removeButtons) + idx);
-		edits.erase(begin(edits) + idx);
-
-		auto item = layout()->takeAt(idx);
-		QLayoutItem *child = nullptr;
-		while ((child = item->layout()->takeAt(0))) {
-			delete child->widget();
-			delete child;
-		}
-		delete item;
-
-		if (removeButtons.size() == 1)
-			removeButtons.front()->setEnabled(false);
+		RemoveEdit(CurrentIndex());
 	});
 
 	QHBoxLayout *subLayout = new QHBoxLayout;
@@ -366,5 +354,66 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 	{
 		emit KeyChanged();
 	});
+}
+
+void OBSHotkeyWidget::RemoveEdit(size_t idx, bool signal)
+{
+	auto &edit = *(begin(edits) + idx);
+	if (!obs_key_combination_is_empty(edit->original) && signal) {
+		changed = true;
+		emit KeyChanged();
+	}
+
+	resetButtons.erase(begin(resetButtons) + idx);
+	removeButtons.erase(begin(removeButtons) + idx);
+	edits.erase(begin(edits) + idx);
+
+	auto item = layout()->takeAt(idx);
+	QLayoutItem *child = nullptr;
+	while ((child = item->layout()->takeAt(0))) {
+		delete child->widget();
+		delete child;
+	}
+	delete item;
+
+	if (removeButtons.size() == 1)
+		removeButtons.front()->setEnabled(false);
+}
+
+void OBSHotkeyWidget::BindingsChanged(void *data, calldata_t *param)
+{
+	auto widget = static_cast<OBSHotkeyWidget*>(data);
+	auto key    = static_cast<obs_hotkey_t*>(calldata_ptr(param, "key"));
+
+	QMetaObject::invokeMethod(widget, "HandleChangedBindings",
+			Q_ARG(obs_hotkey_id, obs_hotkey_get_id(key)));
+}
+
+void OBSHotkeyWidget::HandleChangedBindings(obs_hotkey_id id_)
+{
+	if (ignoreChangedBindings || id != id_) return;
+
+	std::vector<obs_key_combination_t> bindings;
+	auto LoadBindings = [&](obs_hotkey_binding_t *binding)
+	{
+		if (obs_hotkey_binding_get_hotkey_id(binding) != id) return;
+
+		auto get_combo = obs_hotkey_binding_get_key_combination;
+		bindings.push_back(get_combo(binding));
+	};
+	using LoadBindings_t = decltype(&LoadBindings);
+
+	obs_enum_hotkey_bindings([](size_t, obs_hotkey_binding_t *binding,
+				void *data)
+	{
+		auto LoadBindings = *static_cast<LoadBindings_t>(data);
+		LoadBindings(binding);
+		return true;
+	}, static_cast<void*>(&LoadBindings));
+
+	while (edits.size() > 0)
+		RemoveEdit(edits.size() - 1, false);
+
+	SetKeyCombinations(bindings);
 }
 
