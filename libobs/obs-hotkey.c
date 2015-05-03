@@ -1458,3 +1458,12 @@ void obs_hotkeys_set_audio_hotkeys_translations(const char *mute,
 #undef SET_T
 }
 
+void obs_hotkey_update_atomic(void *data, obs_hotkey_atomic_update_func func)
+{
+	if (!lock()) return;
+
+	func(data);
+
+	unlock();
+}
+

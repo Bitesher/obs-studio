@@ -267,7 +267,9 @@ EXPORT void obs_hotkey_enable_callback_rerouting(bool enable);
 
 /* misc */
 
-
+typedef void (*obs_hotkey_atomic_update_func)(void *);
+EXPORT void obs_hotkey_update_atomic(void *data,
+		obs_hotkey_atomic_update_func func);
 
 struct dstr;
 EXPORT void obs_key_to_str(obs_key_t key, struct dstr *str);
